@@ -1,0 +1,14 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use AndyDefer\Records\AbstractRecord;
+
+final class {{class}} extends AbstractRecord
+{
+    public function __construct(
+        // TODO: Define your properties here
+    ) {}
+}

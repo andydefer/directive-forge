@@ -1,0 +1,23 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use AndyDefer\Repository\AbstractRepository;
+use AndyDefer\Records\Recordable;
+use App\Models\Model;
+use Illuminate\Database\Eloquent\Builder;
+
+final class {{class}} extends AbstractRepository
+{
+    public function __construct()
+    {
+        parent::__construct(Model::class, Record::class);
+    }
+
+    protected function applyFilters(Builder $query, Recordable $filters): void
+    {
+        // Apply your filters here
+    }
+}

@@ -1,0 +1,33 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace }};
+
+use AndyDefer\Actions\AbstractAction;
+use AndyDefer\Records\Recordable;
+use Illuminate\Http\JsonResponse;
+use Exception;
+
+final class {{ class }} extends AbstractAction
+{
+    protected function before(Recordable $request): void
+    {
+        //
+    }
+
+    protected function handle(Recordable $request): JsonResponse
+    {
+        // Your business logic here
+        
+        return $this->json([
+            'message' => 'Action executed successfully',
+            'data' => null,
+        ]);
+    }
+
+    protected function after(bool $success, ?Exception $error = null, Recordable $request = new \AndyDefer\Records\EmptyRecord()): void
+    {
+        //
+    }
+}
