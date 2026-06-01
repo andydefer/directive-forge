@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace AndyDefer\DirectiveForge\Tests\Unit\Directives;
 
 use AndyDefer\Directive\Enums\ExitCode;
+use AndyDefer\Directive\Records\DirectiveResponseRecord;
 use AndyDefer\Directive\Testing\InteractsWithDirectives;
+use AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective;
 use AndyDefer\DirectiveForge\Tests\Unit\UnitTestCase;
 
 final class MakeRepositoryDirectiveTest extends UnitTestCase
@@ -24,25 +26,52 @@ final class MakeRepositoryDirectiveTest extends UnitTestCase
         parent::tearDown();
     }
 
+    private function getDirective(): MakeRepositoryDirective
+    {
+        return new MakeRepositoryDirective($this->interaction);
+    }
+
+    private function registerAndRun(string $signature, array $arguments = []): DirectiveResponseRecord
+    {
+        $directive = $this->getDirective();
+        $this->registerDirective($directive);
+
+        return $this->runDirective($signature, $arguments);
+    }
+
     public function test_get_signature_returns_make_repository(): void
     {
-        $directive = $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective::class);
+        // Arrange: Get the directive instance
+        $directive = $this->getDirective();
 
-        $this->assertSame('make-repository {name}', $directive->getSignature());
+        // Act: Get the signature
+        $signature = $directive->getSignature();
+
+        // Assert: Verify the signature is correct
+        $this->assertSame('make-repository {name}', $signature);
     }
 
     public function test_get_description_returns_description(): void
     {
-        $directive = $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective::class);
+        // Arrange: Get the directive instance
+        $directive = $this->getDirective();
 
-        $this->assertSame('Create a new repository class', $directive->getDescription());
+        // Act: Get the description
+        $description = $directive->getDescription();
+
+        // Assert: Verify the description is correct
+        $this->assertSame('Create a new repository class', $description);
     }
 
     public function test_get_aliases_returns_aliases(): void
     {
-        $directive = $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective::class);
+        // Arrange: Get the directive instance
+        $directive = $this->getDirective();
+
+        // Act: Get the aliases
         $aliases = $directive->getAliases();
 
+        // Assert: Verify the aliases are correct
         $this->assertTrue($aliases->contains('create-repository'));
         $this->assertTrue($aliases->contains('make-repo'));
         $this->assertSame(2, $aliases->count());
@@ -50,94 +79,103 @@ final class MakeRepositoryDirectiveTest extends UnitTestCase
 
     public function test_execute_returns_error_when_name_missing(): void
     {
-        $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective::class);
+        // Arrange: No arguments provided
 
-        $response = $this->runDirective('make-repository');
+        // Act: Run the directive without name argument
+        $response = $this->registerAndRun('make-repository');
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->getExitCode());
-        // Le message d'erreur réel vient du kernel Laravel Directive
-        $this->assertStringContainsString('Not enough arguments', $response->getOutput());
+        // Assert: Verify invalid argument error
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertStringContainsString('Not enough arguments', $response->output);
     }
 
     public function test_execute_creates_repository_file(): void
     {
-        $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective::class);
+        // Arrange: Prepare repository name
+        $repositoryName = 'user';
 
-        $response = $this->runDirective('make-repository', ['user']);
+        // Act: Run the directive to create the repository file
+        $response = $this->registerAndRun('make-repository', [$repositoryName]);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->getExitCode());
-        $this->assertStringContainsString('repository created successfully!', strtolower($response->getOutput()));
-
-        $expectedPath = $this->directiveTempDir . '/app/Repositories/UserRepository.php';
-        $this->assertFileExists($expectedPath);
-
+        $expectedPath = $this->directiveTempDir.'/app/Repositories/UserRepository.php';
         $content = file_get_contents($expectedPath);
+
+        // Assert: Verify success and file content
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
+        $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserRepository', $content);
         $this->assertStringContainsString('extends AbstractRepository', $content);
-        // Le stub actuel ne contient pas UserInterface
-        // $this->assertStringContainsString('UserInterface', $content);
     }
 
     public function test_execute_creates_repository_in_subdirectory(): void
     {
-        $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective::class);
+        // Arrange: Prepare repository name with subdirectories
+        $repositoryName = 'admin/user';
 
-        $response = $this->runDirective('make-repository', ['admin/user']);
+        // Act: Run the directive to create the repository file
+        $response = $this->registerAndRun('make-repository', [$repositoryName]);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->getExitCode());
-        $this->assertStringContainsString('repository created successfully!', strtolower($response->getOutput()));
-
-        $expectedPath = $this->directiveTempDir . '/app/Repositories/Admin/UserRepository.php';
-        $this->assertFileExists($expectedPath);
-
+        $expectedPath = $this->directiveTempDir.'/app/Repositories/Admin/UserRepository.php';
         $content = file_get_contents($expectedPath);
+
+        // Assert: Verify success and correct namespace
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
+        $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('namespace App\\Repositories\\Admin', $content);
         $this->assertStringContainsString('class UserRepository', $content);
     }
 
     public function test_execute_adds_repository_suffix_automatically(): void
     {
-        $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective::class);
+        // Arrange: Prepare repository name without suffix
+        $repositoryName = 'product';
 
-        $response = $this->runDirective('make-repository', ['product']);
+        // Act: Run the directive to create the repository file
+        $response = $this->registerAndRun('make-repository', [$repositoryName]);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->getExitCode());
-
-        $expectedPath = $this->directiveTempDir . '/app/Repositories/ProductRepository.php';
-        $this->assertFileExists($expectedPath);
-
+        $expectedPath = $this->directiveTempDir.'/app/Repositories/ProductRepository.php';
         $content = file_get_contents($expectedPath);
+
+        // Assert: Verify suffix was added automatically
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class ProductRepository', $content);
     }
 
     public function test_execute_does_not_double_repository_suffix(): void
     {
-        $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective::class);
+        // Arrange: Prepare repository name that already has suffix
+        $repositoryName = 'UserRepository';
 
-        $response = $this->runDirective('make-repository', ['UserRepository']);
+        // Act: Run the directive to create the repository file
+        $response = $this->registerAndRun('make-repository', [$repositoryName]);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->getExitCode());
-
-        $expectedPath = $this->directiveTempDir . '/app/Repositories/UserRepository.php';
-        $this->assertFileExists($expectedPath);
-
+        $expectedPath = $this->directiveTempDir.'/app/Repositories/UserRepository.php';
         $content = file_get_contents($expectedPath);
+
+        // Assert: Verify suffix is not duplicated
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserRepository', $content);
         $this->assertStringNotContainsString('UserRepositoryRepository', $content);
     }
 
     public function test_execute_creates_interface_name_correctly(): void
     {
-        $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective::class);
+        // Arrange: Prepare repository name
+        $repositoryName = 'product-category';
 
-        $response = $this->runDirective('make-repository', ['product-category']);
+        // Act: Run the directive to create the repository file
+        $response = $this->registerAndRun('make-repository', [$repositoryName]);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->getExitCode());
-
-        $expectedPath = $this->directiveTempDir . '/app/Repositories/ProductCategoryRepository.php';
-        $this->assertFileExists($expectedPath);
-
+        $expectedPath = $this->directiveTempDir.'/app/Repositories/ProductCategoryRepository.php';
         $content = file_get_contents($expectedPath);
+
+        // Assert: Verify interface name is generated correctly
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class ProductCategoryRepository', $content);
     }
 }

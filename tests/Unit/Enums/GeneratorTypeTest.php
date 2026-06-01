@@ -31,7 +31,46 @@ final class GeneratorTypeTest extends UnitTestCase
         $this->assertSame('App\\Actions', $config->baseNamespace);
         $this->assertStringContainsString('action.stub', $config->stubPath);
         $this->assertSame('Action', $config->suffix);
-        $this->assertTrue($config->supportsType);
+        $this->assertFalse($config->supportsType);  // ✅ Changé : false au lieu de true
+        $this->assertFalse($config->requiresType);
+    }
+
+    public function test_task_config(): void
+    {
+        $config = GeneratorType::TASK->getConfig();
+
+        $this->assertSame(GeneratorType::TASK, $config->type);
+        $this->assertSame('/app/Tasks/', $config->basePath);
+        $this->assertSame('App\\Tasks', $config->baseNamespace);
+        $this->assertStringContainsString('task.stub', $config->stubPath);
+        $this->assertSame('Task', $config->suffix);
+        $this->assertFalse($config->supportsType);
+        $this->assertFalse($config->requiresType);
+    }
+
+    public function test_repository_config(): void
+    {
+        $config = GeneratorType::REPOSITORY->getConfig();
+
+        $this->assertSame(GeneratorType::REPOSITORY, $config->type);
+        $this->assertSame('/app/Repositories/', $config->basePath);
+        $this->assertSame('App\\Repositories', $config->baseNamespace);
+        $this->assertStringContainsString('repository.stub', $config->stubPath);
+        $this->assertSame('Repository', $config->suffix);
+        $this->assertFalse($config->supportsType);
+        $this->assertFalse($config->requiresType);
+    }
+
+    public function test_record_config(): void
+    {
+        $config = GeneratorType::RECORD->getConfig();
+
+        $this->assertSame(GeneratorType::RECORD, $config->type);
+        $this->assertSame('/app/Records/', $config->basePath);
+        $this->assertSame('App\\Records', $config->baseNamespace);
+        $this->assertStringContainsString('record.stub', $config->stubPath);
+        $this->assertSame('Record', $config->suffix);
+        $this->assertFalse($config->supportsType);
         $this->assertFalse($config->requiresType);
     }
 
@@ -77,5 +116,21 @@ final class GeneratorTypeTest extends UnitTestCase
         $actionAliases = GeneratorType::ACTION->getAliases();
         $this->assertContains('create-action', $actionAliases);
         $this->assertContains('make-act', $actionAliases);
+
+        $taskAliases = GeneratorType::TASK->getAliases();
+        $this->assertContains('create-task', $taskAliases);
+        $this->assertContains('make-job', $taskAliases);
+
+        $repositoryAliases = GeneratorType::REPOSITORY->getAliases();
+        $this->assertContains('create-repository', $repositoryAliases);
+        $this->assertContains('make-repo', $repositoryAliases);
+
+        $recordAliases = GeneratorType::RECORD->getAliases();
+        $this->assertContains('create-record', $recordAliases);
+        $this->assertContains('make-dto', $recordAliases);
+
+        $collectionAliases = GeneratorType::TYPED_COLLECTION->getAliases();
+        $this->assertContains('create-collection', $collectionAliases);
+        $this->assertContains('make-collection', $collectionAliases);
     }
 }

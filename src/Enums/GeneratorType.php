@@ -4,14 +4,24 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Enums;
 
+use AndyDefer\Directive\Collections\ReplacementCollection;
+use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Generators\ActionGenerator;
 use AndyDefer\DirectiveForge\Generators\DirectiveGenerator;
 use AndyDefer\DirectiveForge\Generators\RecordGenerator;
 use AndyDefer\DirectiveForge\Generators\RepositoryGenerator;
 use AndyDefer\DirectiveForge\Generators\TaskGenerator;
 use AndyDefer\DirectiveForge\Generators\TypedCollectionGenerator;
-use AndyDefer\DirectiveForge\ValueObjects\GeneratorConfig;
+use AndyDefer\DirectiveForge\Records\GeneratorConfig;
 
+/**
+ * Enumeration of available code generator types.
+ *
+ * Defines all supported generation types, their configurations,
+ * and associated metadata for the Forge package.
+ *
+ * @author Andy Defer
+ */
 enum GeneratorType: string
 {
     case DIRECTIVE = 'directive';
@@ -21,57 +31,64 @@ enum GeneratorType: string
     case RECORD = 'record';
     case TYPED_COLLECTION = 'typed-collection';
 
+    /**
+     * Returns the generator configuration for this type.
+     *
+     * @return GeneratorConfig The configuration record
+     */
     public function getConfig(): GeneratorConfig
     {
-        return match ($this) {
-            self::DIRECTIVE => new GeneratorConfig(
-                type: $this,
-                basePath: '/app/Directives/',
-                baseNamespace: 'App\\Directives',
-                stubPath: __DIR__ . '/../../stubs/directive.stub',
-                suffix: 'Directive',
-                extraReplacements: ['{{date}}' => date('Y-m-d H:i:s')],
-            ),
-            self::ACTION => new GeneratorConfig(
-                type: $this,
-                basePath: '/app/Actions/',
-                baseNamespace: 'App\\Actions',
-                stubPath: __DIR__ . '/../../stubs/action.stub',
-                suffix: 'Action',
-                supportsType: true,
-            ),
-            self::TASK => new GeneratorConfig(
-                type: $this,
-                basePath: '/app/Tasks/',
-                baseNamespace: 'App\\Tasks',
-                stubPath: __DIR__ . '/../../stubs/task.stub',
-                suffix: 'Task',
-            ),
-            self::REPOSITORY => new GeneratorConfig(
-                type: $this,
-                basePath: '/app/Repositories/',
-                baseNamespace: 'App\\Repositories',
-                stubPath: __DIR__ . '/../../stubs/repository.stub',
-                suffix: 'Repository',
-            ),
-            self::RECORD => new GeneratorConfig(
-                type: $this,
-                basePath: '/app/Records/',
-                baseNamespace: 'App\\Records',
-                stubPath: __DIR__ . '/../../stubs/record.stub',
-                suffix: 'Record',
-            ),
-            self::TYPED_COLLECTION => new GeneratorConfig(
-                type: $this,
-                basePath: '/app/Collections/',
-                baseNamespace: 'App\\Collections',
-                stubPath: __DIR__ . '/../../stubs/typed-collection.stub',
-                suffix: 'Collection',
-                requiresType: true,
-            ),
+        $baseConfig = [
+            'type' => $this,
+            'suffix' => $this->getSuffix(),
+        ];
+
+        $specificConfig = match ($this) {
+            self::DIRECTIVE => [
+                'basePath' => '/app/Directives/',
+                'baseNamespace' => 'App\\Directives',
+                'stubPath' => __DIR__ . '/../../stubs/directive.stub',
+                'extraReplacements' => [
+                    new ReplacementRecord('{{date}}', date('Y-m-d H:i:s')),
+                ],
+            ],
+            self::ACTION => [
+                'basePath' => '/app/Actions/',
+                'baseNamespace' => 'App\\Actions',
+                'stubPath' => __DIR__ . '/../../stubs/action.stub',
+                // ✅ SUPPRESSION de 'supportsType' et 'requiresType'
+            ],
+            self::TASK => [
+                'basePath' => '/app/Tasks/',
+                'baseNamespace' => 'App\\Tasks',
+                'stubPath' => __DIR__ . '/../../stubs/task.stub',
+            ],
+            self::REPOSITORY => [
+                'basePath' => '/app/Repositories/',
+                'baseNamespace' => 'App\\Repositories',
+                'stubPath' => __DIR__ . '/../../stubs/repository.stub',
+            ],
+            self::RECORD => [
+                'basePath' => '/app/Records/',
+                'baseNamespace' => 'App\\Records',
+                'stubPath' => __DIR__ . '/../../stubs/record.stub',
+            ],
+            self::TYPED_COLLECTION => [
+                'basePath' => '/app/Collections/',
+                'baseNamespace' => 'App\\Collections',
+                'stubPath' => __DIR__ . '/../../stubs/typed-collection.stub',
+                'requiresType' => true,
+            ],
         };
+
+        return GeneratorConfig::from(array_merge($baseConfig, $specificConfig));
     }
 
+    /**
+     * Returns the fully qualified generator class name for this type.
+     *
+     * @return string The generator class FQCN
+     */
     public function getGeneratorClass(): string
     {
         return match ($this) {
@@ -84,6 +101,11 @@ enum GeneratorType: string
         };
     }
 
+    /**
+     * Returns the CLI signature for generating this type.
+     *
+     * @return string The command signature (e.g., 'make-directive')
+     */
     public function getSignature(): string
     {
         return match ($this) {
@@ -96,6 +118,11 @@ enum GeneratorType: string
         };
     }
 
+    /**
+     * Returns the CLI description for this generator type.
+     *
+     * @return string The human-readable description
+     */
     public function getDescription(): string
     {
         return match ($this) {
@@ -108,6 +135,11 @@ enum GeneratorType: string
         };
     }
 
+    /**
+     * Returns CLI aliases for this generator type.
+     *
+     * @return array<string> Array of alias names
+     */
     public function getAliases(): array
     {
         return match ($this) {
@@ -117,6 +149,23 @@ enum GeneratorType: string
             self::REPOSITORY => ['create-repository', 'make-repo'],
             self::RECORD => ['create-record', 'make-dto'],
             self::TYPED_COLLECTION => ['create-collection', 'make-collection'],
+        };
+    }
+
+    /**
+     * Returns the class suffix for this generator type.
+     *
+     * @return string The suffix to append to class names
+     */
+    private function getSuffix(): string
+    {
+        return match ($this) {
+            self::DIRECTIVE => 'Directive',
+            self::ACTION => 'Action',
+            self::TASK => 'Task',
+            self::REPOSITORY => 'Repository',
+            self::RECORD => 'Record',
+            self::TYPED_COLLECTION => 'Collection',
         };
     }
 }

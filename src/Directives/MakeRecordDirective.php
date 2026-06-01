@@ -7,7 +7,7 @@ namespace AndyDefer\DirectiveForge\Directives;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\DirectiveForge\Generators\RecordGenerator;
-use AndyDefer\Records\Collections\Utility\StringTypedCollection;
+use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class MakeRecordDirective extends BaseDirective
 {
@@ -30,8 +30,8 @@ final class MakeRecordDirective extends BaseDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-record');
-        $aliases->add('make-dto');
+        $aliases->add('create-record', 'make-dto');
+
         return $aliases;
     }
 
@@ -41,6 +41,7 @@ final class MakeRecordDirective extends BaseDirective
 
         if ($name === null) {
             $this->error('Record name is required');
+
             return ExitCode::INVALID_ARGUMENT;
         }
 

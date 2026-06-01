@@ -7,7 +7,7 @@ namespace AndyDefer\DirectiveForge\Directives;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\DirectiveForge\Generators\RepositoryGenerator;
-use AndyDefer\Records\Collections\Utility\StringTypedCollection;
+use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class MakeRepositoryDirective extends BaseDirective
 {
@@ -30,8 +30,8 @@ final class MakeRepositoryDirective extends BaseDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-repository');
-        $aliases->add('make-repo');
+        $aliases->add('create-repository', 'make-repo');
+
         return $aliases;
     }
 
@@ -41,6 +41,7 @@ final class MakeRepositoryDirective extends BaseDirective
 
         if ($name === null) {
             $this->error('Repository name is required');
+
             return ExitCode::INVALID_ARGUMENT;
         }
 

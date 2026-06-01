@@ -9,7 +9,7 @@ use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\Directive\Services\DirectiveNamingService;
 use AndyDefer\Directive\Services\SignatureValidationService;
 use AndyDefer\DirectiveForge\Generators\DirectiveGenerator;
-use AndyDefer\Records\Collections\Utility\StringTypedCollection;
+use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class MakeDirective extends BaseDirective
 {
@@ -35,8 +35,8 @@ final class MakeDirective extends BaseDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-directive');
-        $aliases->add('make-cmd');
+        $aliases->add('create-directive', 'make-cmd');
+
         return $aliases;
     }
 
@@ -46,6 +46,7 @@ final class MakeDirective extends BaseDirective
 
         if ($name === null) {
             $this->error('Directive name is required');
+
             return ExitCode::INVALID_ARGUMENT;
         }
 
@@ -55,7 +56,7 @@ final class MakeDirective extends BaseDirective
         $generator = $this->generator;
         $validation = $generator->validate($baseName);
 
-        if (!$validation) {
+        if (! $validation) {
             return ExitCode::INVALID_ARGUMENT;
         }
 

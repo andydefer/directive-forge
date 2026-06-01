@@ -7,7 +7,7 @@ namespace AndyDefer\DirectiveForge\Directives;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\DirectiveForge\Generators\TaskGenerator;
-use AndyDefer\Records\Collections\Utility\StringTypedCollection;
+use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class MakeTaskDirective extends BaseDirective
 {
@@ -30,8 +30,8 @@ final class MakeTaskDirective extends BaseDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-task');
-        $aliases->add('make-job');
+        $aliases->add('create-task', 'make-job');
+
         return $aliases;
     }
 
@@ -41,6 +41,7 @@ final class MakeTaskDirective extends BaseDirective
 
         if ($name === null) {
             $this->error('Task name is required');
+
             return ExitCode::INVALID_ARGUMENT;
         }
 

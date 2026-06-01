@@ -7,7 +7,7 @@ namespace AndyDefer\DirectiveForge\Directives;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\DirectiveForge\Generators\ActionGenerator;
-use AndyDefer\Records\Collections\Utility\StringTypedCollection;
+use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class MakeActionDirective extends BaseDirective
 {
@@ -19,7 +19,8 @@ final class MakeActionDirective extends BaseDirective
 
     public function getSignature(): string
     {
-        return 'make-action {name} {--type=api}';
+        // ✅ Suppression de l'option --type
+        return 'make-action {name}';
     }
 
     public function getDescription(): string
@@ -29,9 +30,9 @@ final class MakeActionDirective extends BaseDirective
 
     public function getAliases(): StringTypedCollection
     {
-        $aliases = new StringTypedCollection;
-        $aliases->add('create-action');
-        $aliases->add('make-act');
+        $aliases = new StringTypedCollection();
+        $aliases->add('create-action', 'make-act');
+
         return $aliases;
     }
 
@@ -41,13 +42,6 @@ final class MakeActionDirective extends BaseDirective
 
         if ($name === null) {
             $this->error('Action name is required');
-            return ExitCode::INVALID_ARGUMENT;
-        }
-
-        $type = $this->option('type');
-
-        if ($type && !in_array($type, ['api', 'web'])) {
-            $this->error("Invalid type '{$type}'. Allowed types: api, web");
             return ExitCode::INVALID_ARGUMENT;
         }
 

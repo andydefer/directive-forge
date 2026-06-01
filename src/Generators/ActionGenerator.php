@@ -4,10 +4,19 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Generators;
 
+use AndyDefer\Directive\Collections\ReplacementCollection;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\DirectiveForge\Enums\GeneratorType;
 use AndyDefer\DirectiveForge\ValueObjects\PathInfo;
 
+/**
+ * Generator for creating Action classes.
+ *
+ * Creates action classes for encapsulating business logic following the
+ * Action Domain Pattern.
+ *
+ * @author Andy Defer
+ */
 final class ActionGenerator extends AbstractGenerator
 {
     public function __construct(DirectiveInteractionService $interaction)
@@ -16,26 +25,20 @@ final class ActionGenerator extends AbstractGenerator
         $this->type = GeneratorType::ACTION;
     }
 
-    public function getReplacements(PathInfo $pathInfo, ?string $type = null, ?string $itemType = null): array
+    /**
+     * {@inheritDoc}
+     */
+    public function getReplacements(PathInfo $pathInfo, ?string $type = null, ?string $itemType = null): ReplacementCollection
     {
         $config = $this->type->getConfig();
         $className = $pathInfo->className;
         $namespace = $pathInfo->getNamespace($config->baseNamespace);
 
-        // Générer le nom de la vue à partir du nom de la classe
-        $view = str_replace('Action', '', $className);
-        $view = preg_replace('/([a-z])([A-Z])/', '$1/$2', $view);
-        $parts = explode('/', $view);
-        if (count($parts) > 1) {
-            $last = array_pop($parts);
-            array_unshift($parts, $last);
-            $view = implode('/', $parts);
-        }
+        $collection = new ReplacementCollection();
+        $collection
+            ->addReplacement('{{ namespace }}', $namespace)
+            ->addReplacement('{{ class }}', $className);
 
-        return [
-            '{{ namespace }}' => $namespace,
-            '{{ class }}' => $className,
-            '{{ view }}' => $view,
-        ];
+        return $collection;
     }
 }

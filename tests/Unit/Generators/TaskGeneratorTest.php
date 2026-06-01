@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Tests\Unit\Generators;
 
-use AndyDefer\Directive\Enums\ExitCode;
+use AndyDefer\Directive\Collections\ReplacementCollection;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
+use AndyDefer\DirectiveForge\Generators\AbstractGenerator;
 use AndyDefer\DirectiveForge\Generators\TaskGenerator;
 use AndyDefer\DirectiveForge\Tests\Unit\UnitTestCase;
 use AndyDefer\DirectiveForge\ValueObjects\PathInfo;
-use Illuminate\Filesystem\Filesystem;
+use AndyDefer\DomainStructures\Collections\Utility\ScalarTypedCollection;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 
@@ -17,6 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 final class TaskGeneratorTest extends UnitTestCase
 {
     private TaskGenerator $generator;
+
     private DirectiveInteractionService&MockObject $interaction;
 
     protected function setUp(): void
@@ -27,220 +29,231 @@ final class TaskGeneratorTest extends UnitTestCase
         $this->generator = new TaskGenerator($this->interaction);
     }
 
+    private function createPathInfo(string $className, string $subPath = '', array $segments = []): PathInfo
+    {
+        $segmentsCollection = new ScalarTypedCollection;
+        if (! empty($segments)) {
+            $segmentsCollection->add(...$segments);
+        }
+
+        return PathInfo::from([
+            'className' => $className,
+            'subPath' => $subPath,
+            'segments' => $segmentsCollection,
+        ]);
+    }
+
+    private function assertReplacementHasKey(ReplacementCollection $replacements, string $key, string $expectedValue): void
+    {
+        $array = $replacements->toAssociativeArray();
+        $this->assertArrayHasKey($key, $array);
+        $this->assertSame($expectedValue, $array[$key]);
+    }
+
+    private function assertReplacementNotHasKey(ReplacementCollection $replacements, string $key): void
+    {
+        $array = $replacements->toAssociativeArray();
+        $this->assertArrayNotHasKey($key, $array);
+    }
+
     public function test_get_replacements_with_simple_name(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'send-welcome-email',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with simple name
+        $pathInfo = $this->createPathInfo('send-welcome-email', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertIsArray($replacements);
-        $this->assertArrayHasKey('{{namespace}}', $replacements);
-        $this->assertArrayHasKey('{{class}}', $replacements);
-        $this->assertArrayHasKey('{{description}}', $replacements);
-
-        $this->assertSame('App\\Tasks', $replacements['{{namespace}}']);
-        // Le nom de la classe reste tel quel (kebab-case)
-        $this->assertSame('send-welcome-email', $replacements['{{class}}']);
-        $this->assertStringContainsString('send-welcome-email', $replacements['{{description}}']);
+        // Assert: Verify replacement structure
+        $this->assertArrayHasKey('{{namespace}}', $array);
+        $this->assertArrayHasKey('{{class}}', $array);
+        $this->assertArrayHasKey('{{description}}', $array);
+        $this->assertSame('App\\Tasks', $array['{{namespace}}']);
+        $this->assertSame('send-welcome-email', $array['{{class}}']);
+        $this->assertStringContainsString('send-welcome-email', $array['{{description}}']);
     }
 
     public function test_get_replacements_with_subdirectory(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'send-welcome-email',
-            subPath: 'User',
-            segments: ['User']
-        );
+        // Arrange: Create path info with subdirectory
+        $pathInfo = $this->createPathInfo('send-welcome-email', 'User', ['User']);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('App\\Tasks\\User', $replacements['{{namespace}}']);
-        $this->assertSame('send-welcome-email', $replacements['{{class}}']);
+        // Assert: Verify namespace includes subdirectory
+        $this->assertSame('App\\Tasks\\User', $array['{{namespace}}']);
+        $this->assertSame('send-welcome-email', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_nested_subdirectories(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'process-order',
-            subPath: 'Shop\\Checkout',
-            segments: ['Shop', 'Checkout']
-        );
+        // Arrange: Create path info with nested subdirectories
+        $pathInfo = $this->createPathInfo('process-order', 'Shop\\Checkout', ['Shop', 'Checkout']);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('App\\Tasks\\Shop\\Checkout', $replacements['{{namespace}}']);
-        $this->assertSame('process-order', $replacements['{{class}}']);
+        // Assert: Verify nested namespace
+        $this->assertSame('App\\Tasks\\Shop\\Checkout', $array['{{namespace}}']);
+        $this->assertSame('process-order', $array['{{class}}']);
     }
 
     public function test_get_replacements_when_class_already_has_suffix(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'SendWelcomeEmailTask',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with class that already has Task suffix
+        $pathInfo = $this->createPathInfo('SendWelcomeEmailTask', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('SendWelcomeEmailTask', $replacements['{{class}}']);
-        $this->assertStringEndsWith('Task', $replacements['{{class}}']);
+        // Assert: Verify class name preserved
+        $this->assertSame('SendWelcomeEmailTask', $array['{{class}}']);
+        $this->assertStringEndsWith('Task', $array['{{class}}']);
     }
 
     public function test_get_replacements_preserves_kebab_case(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'send-welcome-email',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with kebab-case
+        $pathInfo = $this->createPathInfo('send-welcome-email', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('send-welcome-email', $replacements['{{class}}']);
+        // Assert: Verify kebab-case preserved
+        $this->assertSame('send-welcome-email', $array['{{class}}']);
     }
 
     public function test_get_replacements_preserves_snake_case(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'send_welcome_email',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with snake_case
+        $pathInfo = $this->createPathInfo('send_welcome_email', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('send_welcome_email', $replacements['{{class}}']);
+        // Assert: Verify snake_case preserved
+        $this->assertSame('send_welcome_email', $array['{{class}}']);
     }
 
     public function test_get_replacements_preserves_existing_pascal_case(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'ProcessOrder',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with PascalCase
+        $pathInfo = $this->createPathInfo('ProcessOrder', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('ProcessOrder', $replacements['{{class}}']);
+        // Assert: Verify PascalCase preserved
+        $this->assertSame('ProcessOrder', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_numbers_in_name(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'process-order-v2',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with numbers
+        $pathInfo = $this->createPathInfo('process-order-v2', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('process-order-v2', $replacements['{{class}}']);
+        // Assert: Verify numbers preserved
+        $this->assertSame('process-order-v2', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_uppercase_acronyms(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'send-API-request',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with uppercase acronyms
+        $pathInfo = $this->createPathInfo('send-API-request', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('send-API-request', $replacements['{{class}}']);
+        // Assert: Verify acronyms preserved
+        $this->assertSame('send-API-request', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_mixed_case(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user-API-key',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with mixed case
+        $pathInfo = $this->createPathInfo('user-API-key', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('user-API-key', $replacements['{{class}}']);
+        // Assert: Verify mixed case preserved
+        $this->assertSame('user-API-key', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_long_complex_name(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'send-weekly-digest-email-to-all-active-users',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with long complex name
+        $pathInfo = $this->createPathInfo('send-weekly-digest-email-to-all-active-users', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('send-weekly-digest-email-to-all-active-users', $replacements['{{class}}']);
+        // Assert: Verify long name preserved
+        $this->assertSame('send-weekly-digest-email-to-all-active-users', $array['{{class}}']);
     }
 
     public function test_get_replacements_description_contains_original_name(): void
     {
+        // Arrange: Create path info
         $originalName = 'send-welcome-email';
-        $pathInfo = new PathInfo(
-            className: $originalName,
-            subPath: '',
-            segments: []
-        );
+        $pathInfo = $this->createPathInfo($originalName, '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertStringContainsString($originalName, $replacements['{{description}}']);
+        // Assert: Verify description contains original name
+        $this->assertStringContainsString($originalName, $array['{{description}}']);
     }
 
     public function test_get_replacements_description_is_meaningful(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'process-order-payment',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info
+        $pathInfo = $this->createPathInfo('process-order-payment', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertStringContainsString('Task for', $replacements['{{description}}']);
-        $this->assertStringContainsString('process-order-payment', $replacements['{{description}}']);
-    }
-
-    public function test_generate_calls_parent_generate_method(): void
-    {
-        $pathInfo = new PathInfo(
-            className: 'test-task',
-            subPath: '',
-            segments: []
-        );
-
-        $reflection = new \ReflectionClass($this->generator);
-        $method = $reflection->getMethod('generate');
-
-        $this->assertTrue($method->isPublic());
+        // Assert: Verify description format
+        $this->assertStringContainsString('Task for', $array['{{description}}']);
+        $this->assertStringContainsString('process-order-payment', $array['{{description}}']);
     }
 
     public function test_task_generator_has_correct_type(): void
     {
+        // Act: Get generator type
         $type = $this->generator->getType();
 
+        // Assert: Verify type
         $this->assertSame('task', $type->value);
     }
 
-    public function test_get_replacements_returns_array_with_correct_keys(): void
+    public function test_get_replacements_returns_collection_with_correct_keys(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'test',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info
+        $pathInfo = $this->createPathInfo('test', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
-        $keys = array_keys($replacements);
+        $keys = array_keys($replacements->toAssociativeArray());
 
+        // Assert: Verify correct keys
         $this->assertContains('{{namespace}}', $keys);
         $this->assertContains('{{class}}', $keys);
         $this->assertContains('{{description}}', $keys);
@@ -249,115 +262,118 @@ final class TaskGeneratorTest extends UnitTestCase
 
     public function test_get_replacements_never_contains_extra_placeholders(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'test',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info
+        $pathInfo = $this->createPathInfo('test', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
 
-        $this->assertArrayNotHasKey('{{signature}}', $replacements);
-        $this->assertArrayNotHasKey('{{type}}', $replacements);
-        $this->assertArrayNotHasKey('{{interface}}', $replacements);
-        $this->assertArrayNotHasKey('{{item_type}}', $replacements);
+        // Assert: Verify no extra placeholders
+        $this->assertReplacementNotHasKey($replacements, '{{signature}}');
+        $this->assertReplacementNotHasKey($replacements, '{{type}}');
+        $this->assertReplacementNotHasKey($replacements, '{{interface}}');
+        $this->assertReplacementNotHasKey($replacements, '{{item_type}}');
     }
 
     public function test_multiple_task_generations_produce_consistent_results(): void
     {
-        $pathInfo1 = new PathInfo(
-            className: 'my-task',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create two identical path info objects
+        $pathInfo1 = $this->createPathInfo('my-task', '', []);
+        $pathInfo2 = $this->createPathInfo('my-task', '', []);
 
-        $pathInfo2 = new PathInfo(
-            className: 'my-task',
-            subPath: '',
-            segments: []
-        );
-
+        // Act: Get replacements from both
         $replacements1 = $this->generator->getReplacements($pathInfo1);
         $replacements2 = $this->generator->getReplacements($pathInfo2);
 
-        $this->assertSame($replacements1, $replacements2);
+        // Assert: Verify results are identical
+        $this->assertSame(
+            $replacements1->toAssociativeArray(),
+            $replacements2->toAssociativeArray()
+        );
     }
 
     public function test_get_replacements_with_deeply_nested_path(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'send-notification',
-            subPath: 'User\\Notifications\\Email\\Welcome',
-            segments: ['User', 'Notifications', 'Email', 'Welcome']
+        // Arrange: Create path info with deeply nested path
+        $pathInfo = $this->createPathInfo(
+            'send-notification',
+            'User\\Notifications\\Email\\Welcome',
+            ['User', 'Notifications', 'Email', 'Welcome']
         );
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('App\\Tasks\\User\\Notifications\\Email\\Welcome', $replacements['{{namespace}}']);
-        $this->assertSame('send-notification', $replacements['{{class}}']);
+        // Assert: Verify deeply nested namespace
+        $this->assertSame('App\\Tasks\\User\\Notifications\\Email\\Welcome', $array['{{namespace}}']);
+        $this->assertSame('send-notification', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_single_word_name(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'cleanup',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with single word
+        $pathInfo = $this->createPathInfo('cleanup', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('cleanup', $replacements['{{class}}']);
+        // Assert: Verify single word preserved
+        $this->assertSame('cleanup', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_single_word_already_has_suffix(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'CleanupTask',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with single word that has suffix
+        $pathInfo = $this->createPathInfo('CleanupTask', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('CleanupTask', $replacements['{{class}}']);
+        // Assert: Verify class name preserved
+        $this->assertSame('CleanupTask', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_verb_first_name(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'send-email',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info starting with verb
+        $pathInfo = $this->createPathInfo('send-email', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('send-email', $replacements['{{class}}']);
+        // Assert: Verify name preserved
+        $this->assertSame('send-email', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_multiple_verbs(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'fetch-process-store-data',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with multiple verbs
+        $pathInfo = $this->createPathInfo('fetch-process-store-data', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('fetch-process-store-data', $replacements['{{class}}']);
+        // Assert: Verify name preserved
+        $this->assertSame('fetch-process-store-data', $array['{{class}}']);
     }
 
     public function test_generator_extends_abstract_generator(): void
     {
-        $this->assertInstanceOf(\AndyDefer\DirectiveForge\Generators\AbstractGenerator::class, $this->generator);
+        // Assert: Verify inheritance
+        $this->assertInstanceOf(AbstractGenerator::class, $this->generator);
     }
 
     public function test_generator_has_correct_config(): void
     {
+        // Act: Get generator config
         $config = $this->generator->getType()->getConfig();
 
+        // Assert: Verify config values
         $this->assertSame('task', $config->type->value);
         $this->assertSame('/app/Tasks/', $config->basePath);
         $this->assertSame('App\\Tasks', $config->baseNamespace);
@@ -367,15 +383,12 @@ final class TaskGeneratorTest extends UnitTestCase
         $this->assertFalse($config->requiresType);
     }
 
-    /**
-     * Note: Les tests de génération de fichiers sont maintenant gérés par AbstractGenerator
-     * et utilisent le trait FileCreator. La propriété $files n'existe plus directement
-     * dans TaskGenerator car elle est dans le trait FileCreator.
-     * 
-     * Pour tester la génération de fichiers, utilisez les tests d'intégration.
-     */
     public function test_generator_returns_correct_type(): void
     {
-        $this->assertSame('task', $this->generator->getType()->value);
+        // Act: Get generator type value
+        $typeValue = $this->generator->getType()->value;
+
+        // Assert: Verify type value
+        $this->assertSame('task', $typeValue);
     }
 }

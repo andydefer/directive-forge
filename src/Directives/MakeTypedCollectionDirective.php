@@ -7,7 +7,7 @@ namespace AndyDefer\DirectiveForge\Directives;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\DirectiveForge\Generators\TypedCollectionGenerator;
-use AndyDefer\Records\Collections\Utility\StringTypedCollection;
+use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class MakeTypedCollectionDirective extends BaseDirective
 {
@@ -30,8 +30,8 @@ final class MakeTypedCollectionDirective extends BaseDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-collection');
-        $aliases->add('make-collection');
+        $aliases->add('create-collection', 'make-collection');
+
         return $aliases;
     }
 
@@ -41,13 +41,15 @@ final class MakeTypedCollectionDirective extends BaseDirective
 
         if ($name === null) {
             $this->error('Collection name is required');
+
             return ExitCode::INVALID_ARGUMENT;
         }
 
         $itemType = $this->option('item-type');
 
-        if (!$itemType) {
+        if (! $itemType) {
             $this->error('Item type is required. Use --item-type=<type>');
+
             return ExitCode::INVALID_ARGUMENT;
         }
 

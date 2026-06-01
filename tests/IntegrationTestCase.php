@@ -14,7 +14,6 @@ abstract class IntegrationTestCase extends Orchestra
     protected function setUp(): void
     {
         parent::setUp();
-        $this->initDirectiveTesting();
     }
 
     protected function tearDown(): void
@@ -26,6 +25,6 @@ abstract class IntegrationTestCase extends Orchestra
     protected function getEnvironmentSetUp($app): void
     {
         $app['config']->set('app.env', 'testing');
-        $app['config']->set('directive.path', getcwd() . '/app/Directives');
+        $app['config']->set('directive.path', getcwd().'/app/Directives');
     }
 }

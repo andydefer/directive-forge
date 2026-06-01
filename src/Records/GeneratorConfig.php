@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace AndyDefer\DirectiveForge\ValueObjects;
+namespace AndyDefer\DirectiveForge\Records;
 
+use AndyDefer\Directive\Collections\ReplacementCollection;
 use AndyDefer\DirectiveForge\Enums\GeneratorType;
-use AndyDefer\Records\AbstractRecord;
+use AndyDefer\DomainStructures\Abstracts\AbstractRecord;
 
 final class GeneratorConfig extends AbstractRecord
 {
@@ -17,6 +18,6 @@ final class GeneratorConfig extends AbstractRecord
         public readonly string $suffix,
         public readonly bool $requiresType = false,
         public readonly bool $supportsType = false,
-        public readonly array $extraReplacements = [],
+        public readonly ReplacementCollection $extraReplacements = new ReplacementCollection,
     ) {}
 }

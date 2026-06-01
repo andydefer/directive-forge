@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace AndyDefer\DirectiveForge\Tests\Unit\Directives;
 
 use AndyDefer\Directive\Enums\ExitCode;
+use AndyDefer\Directive\Records\DirectiveResponseRecord;
 use AndyDefer\Directive\Testing\InteractsWithDirectives;
+use AndyDefer\DirectiveForge\Directives\MakeTaskDirective;
 use AndyDefer\DirectiveForge\Tests\Unit\UnitTestCase;
 
 final class MakeTaskDirectiveTest extends UnitTestCase
@@ -24,25 +26,52 @@ final class MakeTaskDirectiveTest extends UnitTestCase
         parent::tearDown();
     }
 
+    private function getDirective(): MakeTaskDirective
+    {
+        return new MakeTaskDirective($this->interaction);
+    }
+
+    private function registerAndRun(string $signature, array $arguments = []): DirectiveResponseRecord
+    {
+        $directive = $this->getDirective();
+        $this->registerDirective($directive);
+
+        return $this->runDirective($signature, $arguments);
+    }
+
     public function test_get_signature_returns_make_task(): void
     {
-        $directive = $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeTaskDirective::class);
+        // Arrange: Get the directive instance
+        $directive = $this->getDirective();
 
-        $this->assertSame('make-task {name}', $directive->getSignature());
+        // Act: Get the signature
+        $signature = $directive->getSignature();
+
+        // Assert: Verify the signature is correct
+        $this->assertSame('make-task {name}', $signature);
     }
 
     public function test_get_description_returns_description(): void
     {
-        $directive = $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeTaskDirective::class);
+        // Arrange: Get the directive instance
+        $directive = $this->getDirective();
 
-        $this->assertSame('Create a new task class', $directive->getDescription());
+        // Act: Get the description
+        $description = $directive->getDescription();
+
+        // Assert: Verify the description is correct
+        $this->assertSame('Create a new task class', $description);
     }
 
     public function test_get_aliases_returns_aliases(): void
     {
-        $directive = $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeTaskDirective::class);
+        // Arrange: Get the directive instance
+        $directive = $this->getDirective();
+
+        // Act: Get the aliases
         $aliases = $directive->getAliases();
 
+        // Assert: Verify the aliases are correct
         $this->assertTrue($aliases->contains('create-task'));
         $this->assertTrue($aliases->contains('make-job'));
         $this->assertSame(2, $aliases->count());
@@ -50,28 +79,31 @@ final class MakeTaskDirectiveTest extends UnitTestCase
 
     public function test_execute_returns_error_when_name_missing(): void
     {
-        $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeTaskDirective::class);
+        // Arrange: No arguments provided
 
-        $response = $this->runDirective('make-task');
+        // Act: Run the directive without name argument
+        $response = $this->registerAndRun('make-task');
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->getExitCode());
-        // Le message d'erreur réel vient du kernel Laravel Directive
-        $this->assertStringContainsString('Not enough arguments', $response->getOutput());
+        // Assert: Verify invalid argument error
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertStringContainsString('Not enough arguments', $response->output);
     }
 
     public function test_execute_creates_task_file(): void
     {
-        $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeTaskDirective::class);
+        // Arrange: Prepare task name
+        $taskName = 'send-welcome-email';
 
-        $response = $this->runDirective('make-task', ['send-welcome-email']);
+        // Act: Run the directive to create the task file
+        $response = $this->registerAndRun('make-task', [$taskName]);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->getExitCode());
-        $this->assertStringContainsString('task created successfully!', strtolower($response->getOutput()));
-
-        $expectedPath = $this->directiveTempDir . '/app/Tasks/SendWelcomeEmailTask.php';
-        $this->assertFileExists($expectedPath);
-
+        $expectedPath = $this->directiveTempDir.'/app/Tasks/SendWelcomeEmailTask.php';
         $content = file_get_contents($expectedPath);
+
+        // Assert: Verify success and file content
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertStringContainsString('task created successfully!', strtolower($response->output));
+        $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class SendWelcomeEmailTask', $content);
         $this->assertStringContainsString('extends AbstractTask', $content);
         $this->assertStringContainsString('protected function process(): void', $content);
@@ -79,48 +111,54 @@ final class MakeTaskDirectiveTest extends UnitTestCase
 
     public function test_execute_creates_task_in_subdirectory(): void
     {
-        $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeTaskDirective::class);
+        // Arrange: Prepare task name with subdirectories
+        $taskName = 'user/send-welcome-email';
 
-        $response = $this->runDirective('make-task', ['user/send-welcome-email']);
+        // Act: Run the directive to create the task file
+        $response = $this->registerAndRun('make-task', [$taskName]);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->getExitCode());
-        $this->assertStringContainsString('task created successfully!', strtolower($response->getOutput()));
-
-        $expectedPath = $this->directiveTempDir . '/app/Tasks/User/SendWelcomeEmailTask.php';
-        $this->assertFileExists($expectedPath);
-
+        $expectedPath = $this->directiveTempDir.'/app/Tasks/User/SendWelcomeEmailTask.php';
         $content = file_get_contents($expectedPath);
+
+        // Assert: Verify success and correct namespace
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertStringContainsString('task created successfully!', strtolower($response->output));
+        $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('namespace App\\Tasks\\User', $content);
         $this->assertStringContainsString('class SendWelcomeEmailTask', $content);
     }
 
     public function test_execute_adds_task_suffix_automatically(): void
     {
-        $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeTaskDirective::class);
+        // Arrange: Prepare task name without suffix
+        $taskName = 'process-order';
 
-        $response = $this->runDirective('make-task', ['process-order']);
+        // Act: Run the directive to create the task file
+        $response = $this->registerAndRun('make-task', [$taskName]);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->getExitCode());
-
-        $expectedPath = $this->directiveTempDir . '/app/Tasks/ProcessOrderTask.php';
-        $this->assertFileExists($expectedPath);
-
+        $expectedPath = $this->directiveTempDir.'/app/Tasks/ProcessOrderTask.php';
         $content = file_get_contents($expectedPath);
+
+        // Assert: Verify suffix was added automatically
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class ProcessOrderTask', $content);
     }
 
     public function test_execute_does_not_double_task_suffix(): void
     {
-        $this->registerDirectiveClass(\AndyDefer\DirectiveForge\Directives\MakeTaskDirective::class);
+        // Arrange: Prepare task name that already has suffix
+        $taskName = 'SendWelcomeEmailTask';
 
-        $response = $this->runDirective('make-task', ['SendWelcomeEmailTask']);
+        // Act: Run the directive to create the task file
+        $response = $this->registerAndRun('make-task', [$taskName]);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->getExitCode());
-
-        $expectedPath = $this->directiveTempDir . '/app/Tasks/SendWelcomeEmailTask.php';
-        $this->assertFileExists($expectedPath);
-
+        $expectedPath = $this->directiveTempDir.'/app/Tasks/SendWelcomeEmailTask.php';
         $content = file_get_contents($expectedPath);
+
+        // Assert: Verify suffix is not duplicated
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class SendWelcomeEmailTask', $content);
         $this->assertStringNotContainsString('SendWelcomeEmailTaskTask', $content);
     }

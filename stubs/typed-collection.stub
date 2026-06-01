@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace {{namespace}};
 
-use AndyDefer\Records\Collections\TypedCollection;
+use AndyDefer\DomainStructures\Abstracts\AbstractTypedCollection;
 
 /**
  * @extends TypedCollection<{{type}}>
  */
-final class {{class}} extends TypedCollection
+final class {{class}} extends AbstractTypedCollection
 {
     public function __construct()
     {
-        parent::__construct({{type}}::class);
+        // parent::__construct({{type}}::class);
     }
 }

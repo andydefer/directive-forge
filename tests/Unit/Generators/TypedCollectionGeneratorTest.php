@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Tests\Unit\Generators;
 
+use AndyDefer\Directive\Collections\ReplacementCollection;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
+use AndyDefer\DirectiveForge\Generators\AbstractGenerator;
 use AndyDefer\DirectiveForge\Generators\TypedCollectionGenerator;
 use AndyDefer\DirectiveForge\Tests\Unit\UnitTestCase;
 use AndyDefer\DirectiveForge\ValueObjects\PathInfo;
+use AndyDefer\DomainStructures\Collections\Utility\ScalarTypedCollection;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 
@@ -15,6 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 final class TypedCollectionGeneratorTest extends UnitTestCase
 {
     private TypedCollectionGenerator $generator;
+
     private DirectiveInteractionService&MockObject $interaction;
 
     protected function setUp(): void
@@ -25,263 +29,277 @@ final class TypedCollectionGeneratorTest extends UnitTestCase
         $this->generator = new TypedCollectionGenerator($this->interaction);
     }
 
+    private function createPathInfo(string $className, string $subPath = '', array $segments = []): PathInfo
+    {
+        $segmentsCollection = new ScalarTypedCollection;
+
+        if (! empty($segments)) {
+            $segmentsCollection->add(...$segments);
+        }
+
+        return PathInfo::from([
+            'className' => $className,
+            'subPath' => $subPath,
+            'segments' => $segmentsCollection,
+        ]);
+    }
+
+    private function assertReplacementHasKey(ReplacementCollection $replacements, string $key, string $expectedValue): void
+    {
+        $array = $replacements->toAssociativeArray();
+        $this->assertArrayHasKey($key, $array);
+        $this->assertSame($expectedValue, $array[$key]);
+    }
+
+    private function assertReplacementNotHasKey(ReplacementCollection $replacements, string $key): void
+    {
+        $array = $replacements->toAssociativeArray();
+        $this->assertArrayNotHasKey($key, $array);
+    }
+
     public function test_get_replacements_with_simple_name_and_string_type(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with simple name and string type
+        $pathInfo = $this->createPathInfo('user-collection', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'string');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertIsArray($replacements);
-        $this->assertArrayHasKey('{{namespace}}', $replacements);
-        $this->assertArrayHasKey('{{class}}', $replacements);
-        $this->assertArrayHasKey('{{type}}', $replacements);
-
-        $this->assertSame('App\\Collections', $replacements['{{namespace}}']);
-        $this->assertSame('user-collection', $replacements['{{class}}']);
-        $this->assertSame('string', $replacements['{{type}}']);
+        // Assert: Verify replacement structure
+        $this->assertArrayHasKey('{{namespace}}', $array);
+        $this->assertArrayHasKey('{{class}}', $array);
+        $this->assertArrayHasKey('{{type}}', $array);
+        $this->assertSame('App\\Collections', $array['{{namespace}}']);
+        $this->assertSame('user-collection', $array['{{class}}']);
+        $this->assertSame('string', $array['{{type}}']);
     }
 
     public function test_get_replacements_with_simple_name_and_record_type(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with simple name and record type
+        $pathInfo = $this->createPathInfo('user-collection', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'UserRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('user-collection', $replacements['{{class}}']);
-        $this->assertSame('UserRecord', $replacements['{{type}}']);
+        // Assert: Verify type is preserved
+        $this->assertSame('user-collection', $array['{{class}}']);
+        $this->assertSame('UserRecord', $array['{{type}}']);
     }
 
     public function test_get_replacements_with_subdirectory(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user-collection',
-            subPath: 'Admin',
-            segments: ['Admin']
-        );
+        // Arrange: Create path info with subdirectory
+        $pathInfo = $this->createPathInfo('user-collection', 'Admin', ['Admin']);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'UserRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('App\\Collections\\Admin', $replacements['{{namespace}}']);
-        $this->assertSame('user-collection', $replacements['{{class}}']);
-        $this->assertSame('UserRecord', $replacements['{{type}}']);
+        // Assert: Verify namespace includes subdirectory
+        $this->assertSame('App\\Collections\\Admin', $array['{{namespace}}']);
+        $this->assertSame('user-collection', $array['{{class}}']);
+        $this->assertSame('UserRecord', $array['{{type}}']);
     }
 
     public function test_get_replacements_with_nested_subdirectories(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'order-collection',
-            subPath: 'Shop\\Checkout',
-            segments: ['Shop', 'Checkout']
-        );
+        // Arrange: Create path info with nested subdirectories
+        $pathInfo = $this->createPathInfo('order-collection', 'Shop\\Checkout', ['Shop', 'Checkout']);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'OrderItemRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('App\\Collections\\Shop\\Checkout', $replacements['{{namespace}}']);
-        $this->assertSame('order-collection', $replacements['{{class}}']);
-        $this->assertSame('OrderItemRecord', $replacements['{{type}}']);
+        // Assert: Verify nested namespace
+        $this->assertSame('App\\Collections\\Shop\\Checkout', $array['{{namespace}}']);
+        $this->assertSame('order-collection', $array['{{class}}']);
+        $this->assertSame('OrderItemRecord', $array['{{type}}']);
     }
 
     public function test_get_replacements_when_class_already_has_suffix(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'UserCollection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with class that already has Collection suffix
+        $pathInfo = $this->createPathInfo('UserCollection', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'UserRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('UserCollection', $replacements['{{class}}']);
-        $this->assertStringEndsWith('Collection', $replacements['{{class}}']);
+        // Assert: Verify class name preserved
+        $this->assertSame('UserCollection', $array['{{class}}']);
+        $this->assertStringEndsWith('Collection', $array['{{class}}']);
     }
 
     public function test_get_replacements_preserves_kebab_case(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user-profile-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with kebab-case
+        $pathInfo = $this->createPathInfo('user-profile-collection', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'ProfileRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('user-profile-collection', $replacements['{{class}}']);
+        // Assert: Verify kebab-case preserved
+        $this->assertSame('user-profile-collection', $array['{{class}}']);
     }
 
     public function test_get_replacements_preserves_snake_case(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user_profile_collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with snake_case
+        $pathInfo = $this->createPathInfo('user_profile_collection', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'ProfileRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('user_profile_collection', $replacements['{{class}}']);
+        // Assert: Verify snake_case preserved
+        $this->assertSame('user_profile_collection', $array['{{class}}']);
     }
 
     public function test_get_replacements_preserves_existing_pascal_case(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'ShowUserCollection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with PascalCase
+        $pathInfo = $this->createPathInfo('ShowUserCollection', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'UserRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('ShowUserCollection', $replacements['{{class}}']);
+        // Assert: Verify PascalCase preserved
+        $this->assertSame('ShowUserCollection', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_numbers_in_name(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user-2fa-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with numbers
+        $pathInfo = $this->createPathInfo('user-2fa-collection', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'User2faRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('user-2fa-collection', $replacements['{{class}}']);
+        // Assert: Verify numbers preserved
+        $this->assertSame('user-2fa-collection', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_uppercase_acronyms(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'API-key-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with uppercase acronyms
+        $pathInfo = $this->createPathInfo('API-key-collection', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'APIKeyRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('API-key-collection', $replacements['{{class}}']);
+        // Assert: Verify acronyms preserved
+        $this->assertSame('API-key-collection', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_mixed_case_acronyms(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user-XML-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with mixed case acronyms
+        $pathInfo = $this->createPathInfo('user-XML-collection', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'UserXMLRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('user-XML-collection', $replacements['{{class}}']);
+        // Assert: Verify mixed case preserved
+        $this->assertSame('user-XML-collection', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_complex_class_name(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'active-user-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with complex name
+        $pathInfo = $this->createPathInfo('active-user-collection', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'ActiveUserRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('active-user-collection', $replacements['{{class}}']);
+        // Assert: Verify complex name preserved
+        $this->assertSame('active-user-collection', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_deeply_nested_path(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'order-collection',
-            subPath: 'Api\\V2\\Shop\\Checkout',
-            segments: ['Api', 'V2', 'Shop', 'Checkout']
+        // Arrange: Create path info with deeply nested path
+        $pathInfo = $this->createPathInfo(
+            'order-collection',
+            'Api\\V2\\Shop\\Checkout',
+            ['Api', 'V2', 'Shop', 'Checkout']
         );
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'OrderRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('App\\Collections\\Api\\V2\\Shop\\Checkout', $replacements['{{namespace}}']);
-        $this->assertSame('order-collection', $replacements['{{class}}']);
+        // Assert: Verify deeply nested namespace
+        $this->assertSame('App\\Collections\\Api\\V2\\Shop\\Checkout', $array['{{namespace}}']);
+        $this->assertSame('order-collection', $array['{{class}}']);
     }
 
     public function test_get_replacements_without_item_type_uses_default(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info without item type
+        $pathInfo = $this->createPathInfo('user-collection', '', []);
 
+        // Act: Get replacements without item type
         $replacements = $this->generator->getReplacements($pathInfo, null, null);
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('string', $replacements['{{type}}']);
+        // Assert: Verify default type is string
+        $this->assertSame('string', $array['{{type}}']);
     }
 
     public function test_get_replacements_with_empty_item_type_uses_default(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with empty item type
+        $pathInfo = $this->createPathInfo('user-collection', '', []);
 
+        // Act: Get replacements with empty item type
         $replacements = $this->generator->getReplacements($pathInfo, null, '');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('string', $replacements['{{type}}']);
+        // Assert: Verify default type is string
+        $this->assertSame('string', $array['{{type}}']);
     }
 
     public function test_get_replacements_with_fully_qualified_type_name(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with FQCN type
+        $pathInfo = $this->createPathInfo('user-collection', '', []);
 
+        // Act: Get replacements with FQCN
         $replacements = $this->generator->getReplacements($pathInfo, null, 'App\\Records\\UserRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('App\\Records\\UserRecord', $replacements['{{type}}']);
+        // Assert: Verify FQCN preserved
+        $this->assertSame('App\\Records\\UserRecord', $array['{{type}}']);
     }
 
-    public function test_generate_calls_parent_generate_method(): void
+    public function test_generator_has_correct_type(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'test-collection',
-            subPath: '',
-            segments: []
-        );
+        // Act: Get generator type
+        $type = $this->generator->getType();
 
-        $reflection = new \ReflectionClass($this->generator);
-        $method = $reflection->getMethod('generate');
-
-        $this->assertTrue($method->isPublic());
-    }
-
-    public function test_typed_collection_generator_has_correct_type(): void
-    {
-        $reflection = new \ReflectionClass($this->generator);
-        $property = $reflection->getProperty('type');
-
-        $type = $property->getValue($this->generator);
-
+        // Assert: Verify type
         $this->assertSame('typed-collection', $type->value);
     }
 
-    public function test_get_replacements_returns_array_with_correct_keys(): void
+    public function test_get_replacements_returns_collection_with_correct_keys(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'test',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info
+        $pathInfo = $this->createPathInfo('test', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'string');
-        $keys = array_keys($replacements);
+        $keys = array_keys($replacements->toAssociativeArray());
 
+        // Assert: Verify correct keys
         $this->assertContains('{{namespace}}', $keys);
         $this->assertContains('{{class}}', $keys);
         $this->assertContains('{{type}}', $keys);
@@ -290,123 +308,115 @@ final class TypedCollectionGeneratorTest extends UnitTestCase
 
     public function test_get_replacements_never_contains_extra_placeholders(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'test',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info
+        $pathInfo = $this->createPathInfo('test', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'string');
 
-        $this->assertArrayNotHasKey('{{signature}}', $replacements);
-        $this->assertArrayNotHasKey('{{description}}', $replacements);
-        $this->assertArrayNotHasKey('{{interface}}', $replacements);
+        // Assert: Verify no extra placeholders
+        $this->assertReplacementNotHasKey($replacements, '{{signature}}');
+        $this->assertReplacementNotHasKey($replacements, '{{description}}');
+        $this->assertReplacementNotHasKey($replacements, '{{interface}}');
     }
 
     public function test_multiple_collection_generations_produce_consistent_results(): void
     {
-        $pathInfo1 = new PathInfo(
-            className: 'my-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create two identical path info objects
+        $pathInfo1 = $this->createPathInfo('my-collection', '', []);
+        $pathInfo2 = $this->createPathInfo('my-collection', '', []);
 
-        $pathInfo2 = new PathInfo(
-            className: 'my-collection',
-            subPath: '',
-            segments: []
-        );
-
+        // Act: Get replacements from both
         $replacements1 = $this->generator->getReplacements($pathInfo1, null, 'MyRecord');
         $replacements2 = $this->generator->getReplacements($pathInfo2, null, 'MyRecord');
 
-        $this->assertSame($replacements1, $replacements2);
+        // Assert: Verify results are identical
+        $this->assertSame(
+            $replacements1->toAssociativeArray(),
+            $replacements2->toAssociativeArray()
+        );
     }
 
     public function test_get_replacements_with_single_word_name(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'user',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with single word
+        $pathInfo = $this->createPathInfo('user', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'UserRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('user', $replacements['{{class}}']);
+        // Assert: Verify single word preserved
+        $this->assertSame('user', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_single_word_already_has_suffix(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'UserCollection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with single word that has suffix
+        $pathInfo = $this->createPathInfo('UserCollection', '', []);
 
+        // Act: Get replacements
         $replacements = $this->generator->getReplacements($pathInfo, null, 'UserRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('UserCollection', $replacements['{{class}}']);
+        // Assert: Verify class name preserved
+        $this->assertSame('UserCollection', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_php_primitive_type(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'int-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with PHP primitive type
+        $pathInfo = $this->createPathInfo('int-collection', '', []);
 
+        // Act: Get replacements with int type
         $replacements = $this->generator->getReplacements($pathInfo, null, 'int');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('int', $replacements['{{type}}']);
-        $this->assertSame('int-collection', $replacements['{{class}}']);
+        // Assert: Verify int type
+        $this->assertSame('int', $array['{{type}}']);
+        $this->assertSame('int-collection', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_array_type(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'array-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with array type
+        $pathInfo = $this->createPathInfo('array-collection', '', []);
 
+        // Act: Get replacements with array type
         $replacements = $this->generator->getReplacements($pathInfo, null, 'array');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('array', $replacements['{{type}}']);
-        $this->assertSame('array-collection', $replacements['{{class}}']);
+        // Assert: Verify array type
+        $this->assertSame('array', $array['{{type}}']);
+        $this->assertSame('array-collection', $array['{{class}}']);
     }
 
     public function test_get_replacements_with_nullable_type(): void
     {
-        $pathInfo = new PathInfo(
-            className: 'optional-collection',
-            subPath: '',
-            segments: []
-        );
+        // Arrange: Create path info with nullable type
+        $pathInfo = $this->createPathInfo('optional-collection', '', []);
 
+        // Act: Get replacements with nullable type
         $replacements = $this->generator->getReplacements($pathInfo, null, '?UserRecord');
+        $array = $replacements->toAssociativeArray();
 
-        $this->assertSame('?UserRecord', $replacements['{{type}}']);
-        $this->assertSame('optional-collection', $replacements['{{class}}']);
+        // Assert: Verify nullable type preserved
+        $this->assertSame('?UserRecord', $array['{{type}}']);
+        $this->assertSame('optional-collection', $array['{{class}}']);
     }
 
-    /**
-     * Note: Les tests de génération de fichiers sont maintenant gérés par AbstractGenerator
-     * et utilisent le trait FileCreator. La propriété $files n'existe plus directement
-     * dans TypedCollectionGenerator car elle est dans le trait FileCreator.
-     * 
-     * Pour tester la génération de fichiers, utilisez les tests d'intégration.
-     */
     public function test_generator_extends_abstract_generator(): void
     {
-        $this->assertInstanceOf(\AndyDefer\DirectiveForge\Generators\AbstractGenerator::class, $this->generator);
+        // Assert: Verify inheritance
+        $this->assertInstanceOf(AbstractGenerator::class, $this->generator);
     }
 
     public function test_generator_has_correct_config(): void
     {
+        // Act: Get generator config
         $config = $this->generator->getType()->getConfig();
 
+        // Assert: Verify config values
         $this->assertSame('typed-collection', $config->type->value);
         $this->assertSame('/app/Collections/', $config->basePath);
         $this->assertSame('App\\Collections', $config->baseNamespace);
