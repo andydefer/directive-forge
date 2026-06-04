@@ -8,6 +8,7 @@ use AndyDefer\Directive\Collections\ReplacementCollection;
 use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Generators\ActionGenerator;
 use AndyDefer\DirectiveForge\Generators\ConfigGenerator;
+use AndyDefer\DirectiveForge\Generators\DataGenerator;
 use AndyDefer\DirectiveForge\Generators\DirectiveGenerator;
 use AndyDefer\DirectiveForge\Generators\RecordGenerator;
 use AndyDefer\DirectiveForge\Generators\RepositoryGenerator;
@@ -18,14 +19,6 @@ use AndyDefer\DirectiveForge\Generators\TypedCollectionGenerator;
 use AndyDefer\DirectiveForge\Generators\ValueObjectGenerator;
 use AndyDefer\DirectiveForge\Records\GeneratorConfig;
 
-/**
- * Enumeration of available code generator types.
- *
- * Defines all supported generation types, their configurations,
- * and associated metadata for the Forge package.
- *
- * @author Andy Defer
- */
 enum GeneratorType: string
 {
     case DIRECTIVE = 'directive';
@@ -38,12 +31,8 @@ enum GeneratorType: string
     case REQUEST = 'request';
     case VALUE_OBJECT = 'value-object';
     case CONFIG = 'config';
+    case DATA = 'data';
 
-    /**
-     * Returns the generator configuration for this type.
-     *
-     * @return GeneratorConfig The configuration record
-     */
     public function getConfig(): GeneratorConfig
     {
         $baseConfig = [
@@ -51,11 +40,13 @@ enum GeneratorType: string
             'suffix' => $this->getSuffix(),
         ];
 
+        $stubBasePath = dirname(__DIR__, 2) . '/stubs/';
+
         $specificConfig = match ($this) {
             self::DIRECTIVE => [
                 'basePath' => '/app/Directives/',
                 'baseNamespace' => 'App\\Directives',
-                'stubPath' => __DIR__ . '/../../stubs/directive.stub',
+                'stubPath' => $stubBasePath . 'directive.stub',
                 'extraReplacements' => new ReplacementCollection([
                     new ReplacementRecord('{{date}}', date('Y-m-d H:i:s')),
                 ]),
@@ -63,59 +54,59 @@ enum GeneratorType: string
             self::ACTION => [
                 'basePath' => '/app/Actions/',
                 'baseNamespace' => 'App\\Actions',
-                'stubPath' => __DIR__ . '/../../stubs/action.stub',
+                'stubPath' => $stubBasePath . 'action.stub',
             ],
             self::TASK => [
                 'basePath' => '/app/Tasks/',
                 'baseNamespace' => 'App\\Tasks',
-                'stubPath' => __DIR__ . '/../../stubs/task.stub',
+                'stubPath' => $stubBasePath . 'task.stub',
             ],
             self::REPOSITORY => [
                 'basePath' => '/app/Repositories/',
                 'baseNamespace' => 'App\\Repositories',
-                'stubPath' => __DIR__ . '/../../stubs/repository.stub',
+                'stubPath' => $stubBasePath . 'repository.stub',
             ],
             self::RECORD => [
                 'basePath' => '/app/Records/',
                 'baseNamespace' => 'App\\Records',
-                'stubPath' => __DIR__ . '/../../stubs/record.stub',
+                'stubPath' => $stubBasePath . 'record.stub',
             ],
             self::TYPED_COLLECTION => [
                 'basePath' => '/app/Collections/',
                 'baseNamespace' => 'App\\Collections',
-                'stubPath' => __DIR__ . '/../../stubs/typed-collection.stub',
+                'stubPath' => $stubBasePath . 'typed-collection.stub',
                 'requiresType' => true,
             ],
             self::SERVICE => [
                 'basePath' => '/app/Services/',
                 'baseNamespace' => 'App\\Services',
-                'stubPath' => __DIR__ . '/../../stubs/service.stub',
+                'stubPath' => $stubBasePath . 'service.stub',
             ],
             self::REQUEST => [
                 'basePath' => '/app/Http/Requests/',
                 'baseNamespace' => 'App\\Http\\Requests',
-                'stubPath' => __DIR__ . '/../../stubs/request.stub',
+                'stubPath' => $stubBasePath . 'request.stub',
             ],
             self::VALUE_OBJECT => [
                 'basePath' => '/app/ValueObjects/',
                 'baseNamespace' => 'App\\ValueObjects',
-                'stubPath' => __DIR__ . '/../../stubs/value-object.stub',
+                'stubPath' => $stubBasePath . 'value-object.stub',
             ],
             self::CONFIG => [
                 'basePath' => '/app/Configs/',
                 'baseNamespace' => 'App\\Configs',
-                'stubPath' => __DIR__ . '/../../stubs/config.stub',
+                'stubPath' => $stubBasePath . 'config.stub',
+            ],
+            self::DATA => [
+                'basePath' => '/app/Data/',
+                'baseNamespace' => 'App\\Data',
+                'stubPath' => $stubBasePath . 'data.stub',
             ],
         };
 
         return GeneratorConfig::from(array_merge($baseConfig, $specificConfig));
     }
 
-    /**
-     * Returns the fully qualified generator class name for this type.
-     *
-     * @return string The generator class FQCN
-     */
     public function getGeneratorClass(): string
     {
         return match ($this) {
@@ -129,14 +120,10 @@ enum GeneratorType: string
             self::REQUEST => RequestGenerator::class,
             self::VALUE_OBJECT => ValueObjectGenerator::class,
             self::CONFIG => ConfigGenerator::class,
+            self::DATA => DataGenerator::class,
         };
     }
 
-    /**
-     * Returns the CLI signature for generating this type.
-     *
-     * @return string The command signature (e.g., 'make-directive')
-     */
     public function getSignature(): string
     {
         return match ($this) {
@@ -150,14 +137,10 @@ enum GeneratorType: string
             self::REQUEST => 'make-request',
             self::VALUE_OBJECT => 'make-vo',
             self::CONFIG => 'make-config',
+            self::DATA => 'make-data',
         };
     }
 
-    /**
-     * Returns the CLI description for this generator type.
-     *
-     * @return string The human-readable description
-     */
     public function getDescription(): string
     {
         return match ($this) {
@@ -171,14 +154,10 @@ enum GeneratorType: string
             self::REQUEST => 'Create a new form request class',
             self::VALUE_OBJECT => 'Create a new value object class (VO)',
             self::CONFIG => 'Create a new configuration class',
+            self::DATA => 'Create a new data DTO class (with --fully option for Record and Collection)',
         };
     }
 
-    /**
-     * Returns CLI aliases for this generator type.
-     *
-     * @return array<string> Array of alias names
-     */
     public function getAliases(): array
     {
         return match ($this) {
@@ -192,14 +171,10 @@ enum GeneratorType: string
             self::REQUEST => ['create-request', 'make-req'],
             self::VALUE_OBJECT => ['create-vo', 'make-value-object'],
             self::CONFIG => ['create-config', 'make-cfg'],
+            self::DATA => ['create-data', 'make-dto'],
         };
     }
 
-    /**
-     * Returns the class suffix for this generator type.
-     *
-     * @return string The suffix to append to class names
-     */
     private function getSuffix(): string
     {
         return match ($this) {
@@ -213,6 +188,7 @@ enum GeneratorType: string
             self::REQUEST => 'Request',
             self::VALUE_OBJECT => 'VO',
             self::CONFIG => 'Config',
+            self::DATA => 'Data',
         };
     }
 }

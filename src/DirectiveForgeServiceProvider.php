@@ -9,6 +9,7 @@ use AndyDefer\Directive\Services\DirectiveNamingService;
 use AndyDefer\Directive\Services\SignatureValidationService;
 use AndyDefer\DirectiveForge\Directives\MakeActionDirective;
 use AndyDefer\DirectiveForge\Directives\MakeConfigDirective;
+use AndyDefer\DirectiveForge\Directives\MakeDataDirective;
 use AndyDefer\DirectiveForge\Directives\MakeDirective;
 use AndyDefer\DirectiveForge\Directives\MakeRecordDirective;
 use AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective;
@@ -23,7 +24,6 @@ final class DirectiveForgeServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // MakeDirective
         $this->app->singleton(MakeDirective::class, function ($app) {
             return new MakeDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
@@ -32,65 +32,62 @@ final class DirectiveForgeServiceProvider extends ServiceProvider
             );
         });
 
-        // MakeActionDirective
         $this->app->singleton(MakeActionDirective::class, function ($app) {
             return new MakeActionDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
             );
         });
 
-        // MakeTaskDirective
         $this->app->singleton(MakeTaskDirective::class, function ($app) {
             return new MakeTaskDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
             );
         });
 
-        // MakeRepositoryDirective
         $this->app->singleton(MakeRepositoryDirective::class, function ($app) {
             return new MakeRepositoryDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
             );
         });
 
-        // MakeRecordDirective
         $this->app->singleton(MakeRecordDirective::class, function ($app) {
             return new MakeRecordDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
             );
         });
 
-        // MakeTypedCollectionDirective
         $this->app->singleton(MakeTypedCollectionDirective::class, function ($app) {
             return new MakeTypedCollectionDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
             );
         });
 
-        // MakeServiceDirective
         $this->app->singleton(MakeServiceDirective::class, function ($app) {
             return new MakeServiceDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
             );
         });
 
-        // MakeRequestDirective
         $this->app->singleton(MakeRequestDirective::class, function ($app) {
             return new MakeRequestDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
             );
         });
 
-        // MakeValueObjectDirective
         $this->app->singleton(MakeValueObjectDirective::class, function ($app) {
             return new MakeValueObjectDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
             );
         });
 
-        // MakeConfigDirective
         $this->app->singleton(MakeConfigDirective::class, function ($app) {
             return new MakeConfigDirective(
+                interaction: $app->make(DirectiveInteractionService::class),
+            );
+        });
+
+        $this->app->singleton(MakeDataDirective::class, function ($app) {
+            return new MakeDataDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
             );
         });
@@ -98,7 +95,6 @@ final class DirectiveForgeServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Publier les stubs dans le dossier de l'application
         $this->publishes([
             __DIR__ . '/../stubs' => base_path('stubs/directive-forge'),
         ], 'directive-forge-stubs');

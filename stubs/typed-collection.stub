@@ -7,12 +7,12 @@ namespace {{namespace}};
 use AndyDefer\DomainStructures\Abstracts\AbstractTypedCollection;
 
 /**
- * @extends TypedCollection<{{type}}>
+ * @extends AbstractTypedCollection<{{type}}>
  */
 final class {{class}} extends AbstractTypedCollection
 {
     public function __construct()
     {
-        // parent::__construct({{type}}::class);
+        parent::__construct({{type}}::class);
     }
 }

@@ -33,45 +33,47 @@ final class MakeTypedCollectionDirectiveTest extends UnitTestCase
 
     private function registerAndRun(string $signature, array $arguments = []): DirectiveResponseRecord
     {
+        // Arrange: Register the directive
         $directive = $this->getDirective();
         $this->registerDirective($directive);
 
+        // Act: Run the directive
         return $this->runDirective($signature, $arguments);
     }
 
     public function test_get_signature_returns_make_typed_collection(): void
     {
-        // Arrange: Get the directive instance
+        // Arrange
         $directive = $this->getDirective();
 
-        // Act: Get the signature
+        // Act
         $signature = $directive->getSignature();
 
-        // Assert: Verify the signature is correct
+        // Assert
         $this->assertSame('make-typed-collection {name} {--item-type}', $signature);
     }
 
     public function test_get_description_returns_description(): void
     {
-        // Arrange: Get the directive instance
+        // Arrange
         $directive = $this->getDirective();
 
-        // Act: Get the description
+        // Act
         $description = $directive->getDescription();
 
-        // Assert: Verify the description is correct
+        // Assert
         $this->assertSame('Create a new typed collection class', $description);
     }
 
     public function test_get_aliases_returns_aliases(): void
     {
-        // Arrange: Get the directive instance
+        // Arrange
         $directive = $this->getDirective();
 
-        // Act: Get the aliases
+        // Act
         $aliases = $directive->getAliases();
 
-        // Assert: Verify the aliases are correct
+        // Assert
         $this->assertTrue($aliases->contains('create-collection'));
         $this->assertTrue($aliases->contains('make-collection'));
         $this->assertSame(2, $aliases->count());
@@ -81,135 +83,140 @@ final class MakeTypedCollectionDirectiveTest extends UnitTestCase
     {
         // Arrange: No arguments provided
 
-        // Act: Run the directive without name argument
+        // Act
         $response = $this->registerAndRun('make-typed-collection');
 
-        // Assert: Verify invalid argument error
+        // Assert
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
         $this->assertStringContainsString('Not enough arguments', $response->output);
     }
 
     public function test_execute_returns_error_when_item_type_missing(): void
     {
-        // Arrange: Provide name but no item-type option
+        // Arrange
         $collectionName = 'user-collection';
 
-        // Act: Run the directive without item-type
+        // Act
         $response = $this->registerAndRun('make-typed-collection', [$collectionName]);
 
-        // Assert: Verify item type required error
+        // Assert
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
         $this->assertStringContainsString('Item type is required', $response->output);
     }
 
     public function test_execute_creates_typed_collection_with_string_type(): void
     {
-        // Arrange: Prepare collection name and string type
+        // Arrange
         $collectionName = 'user-collection';
         $itemType = 'string';
 
-        // Act: Run the directive with string type
+        // Act
         $response = $this->registerAndRun('make-typed-collection', [$collectionName, "--item-type={$itemType}"]);
 
-        $expectedPath = $this->directiveTempDir.'/app/Collections/UserCollection.php';
+        $expectedPath = $this->directiveTempDir . '/app/Collections/UserCollection.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify success and file content
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserCollection', $content);
-        $this->assertStringContainsString('extends TypedCollection', $content);
-        $this->assertStringContainsString('@extends TypedCollection<string>', $content);
+        // ✅ Correction : vérifier AbstractTypedCollection
+        $this->assertStringContainsString('extends AbstractTypedCollection', $content);
+        $this->assertStringContainsString('@extends AbstractTypedCollection<string>', $content);
         $this->assertStringContainsString('parent::__construct(string::class)', $content);
     }
 
     public function test_execute_creates_typed_collection_with_record_type(): void
     {
-        // Arrange: Prepare collection name and record type
+        // Arrange
         $collectionName = 'user-collection';
         $itemType = 'UserRecord';
 
-        // Act: Run the directive with record type
+        // Act
         $response = $this->registerAndRun('make-typed-collection', [$collectionName, "--item-type={$itemType}"]);
 
-        $expectedPath = $this->directiveTempDir.'/app/Collections/UserCollection.php';
+        $expectedPath = $this->directiveTempDir . '/app/Collections/UserCollection.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify success and file content with record type
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
-        $this->assertStringContainsString('@extends TypedCollection<UserRecord>', $content);
+        // ✅ Correction : vérifier AbstractTypedCollection
+        $this->assertStringContainsString('@extends AbstractTypedCollection<UserRecord>', $content);
         $this->assertStringContainsString('parent::__construct(UserRecord::class)', $content);
     }
 
     public function test_execute_creates_typed_collection_in_subdirectory(): void
     {
-        // Arrange: Prepare collection name with subdirectory and record type
+        // Arrange
         $collectionName = 'admin/user-collection';
         $itemType = 'UserRecord';
 
-        // Act: Run the directive
+        // Act
         $response = $this->registerAndRun('make-typed-collection', [$collectionName, "--item-type={$itemType}"]);
 
-        $expectedPath = $this->directiveTempDir.'/app/Collections/Admin/UserCollection.php';
+        $expectedPath = $this->directiveTempDir . '/app/Collections/Admin/UserCollection.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify success and correct namespace
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('namespace App\\Collections\\Admin', $content);
         $this->assertStringContainsString('class UserCollection', $content);
+        $this->assertStringContainsString('extends AbstractTypedCollection', $content);
     }
 
     public function test_execute_adds_collection_suffix_automatically(): void
     {
-        // Arrange: Prepare collection name without suffix
+        // Arrange
         $collectionName = 'product';
         $itemType = 'ProductRecord';
 
-        // Act: Run the directive
+        // Act
         $response = $this->registerAndRun('make-typed-collection', [$collectionName, "--item-type={$itemType}"]);
 
-        $expectedPath = $this->directiveTempDir.'/app/Collections/ProductCollection.php';
+        $expectedPath = $this->directiveTempDir . '/app/Collections/ProductCollection.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify suffix was added automatically
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class ProductCollection', $content);
+        $this->assertStringContainsString('extends AbstractTypedCollection', $content);
     }
 
     public function test_execute_does_not_double_collection_suffix(): void
     {
-        // Arrange: Prepare collection name that already has suffix
+        // Arrange
         $collectionName = 'UserCollection';
         $itemType = 'UserRecord';
 
-        // Act: Run the directive
+        // Act
         $response = $this->registerAndRun('make-typed-collection', [$collectionName, "--item-type={$itemType}"]);
 
-        $expectedPath = $this->directiveTempDir.'/app/Collections/UserCollection.php';
+        $expectedPath = $this->directiveTempDir . '/app/Collections/UserCollection.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify suffix is not duplicated
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserCollection', $content);
+        $this->assertStringContainsString('extends AbstractTypedCollection', $content);
         $this->assertStringNotContainsString('UserCollectionCollection', $content);
     }
 
     public function test_execute_requires_item_type_parameter(): void
     {
-        // Arrange: Provide only name without item-type
+        // Arrange
         $collectionName = 'string-collection';
 
-        // Act: Run the directive without item-type
+        // Act
         $response = $this->registerAndRun('make-typed-collection', [$collectionName]);
 
-        // Assert: Verify item type required error
+        // Assert
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
         $this->assertStringContainsString('Item type is required', $response->output);
     }

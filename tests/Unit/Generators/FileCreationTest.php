@@ -391,8 +391,9 @@ final class FileCreationTest extends UnitTestCase
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('class UserCollection', $content);
-        $this->assertStringContainsString('extends TypedCollection', $content);
-        $this->assertStringContainsString('@extends TypedCollection<string>', $content);
+        // ✅ Correction : vérifier AbstractTypedCollection au lieu de TypedCollection
+        $this->assertStringContainsString('extends AbstractTypedCollection', $content);
+        $this->assertStringContainsString('@extends AbstractTypedCollection<string>', $content);
         $this->assertStringContainsString('parent::__construct(string::class)', $content);
     }
 
@@ -414,7 +415,8 @@ final class FileCreationTest extends UnitTestCase
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
-        $this->assertStringContainsString('@extends TypedCollection<UserRecord>', $content);
+        // ✅ Correction : vérifier AbstractTypedCollection au lieu de TypedCollection
+        $this->assertStringContainsString('@extends AbstractTypedCollection<UserRecord>', $content);
         $this->assertStringContainsString('parent::__construct(UserRecord::class)', $content);
     }
 
@@ -438,6 +440,7 @@ final class FileCreationTest extends UnitTestCase
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('namespace App\\Collections\\Admin', $content);
         $this->assertStringContainsString('class UserCollection', $content);
+        $this->assertStringContainsString('extends AbstractTypedCollection', $content);
     }
 
     public function test_creates_typed_collection_with_already_has_suffix(): void

@@ -11,6 +11,8 @@ use AndyDefer\Directive\Services\SignatureValidationService;
 use AndyDefer\Directive\Testing\InteractsWithDirectives;
 use AndyDefer\DirectiveForge\DirectiveForgeServiceProvider;
 use AndyDefer\DirectiveForge\Directives\MakeActionDirective;
+use AndyDefer\DirectiveForge\Directives\MakeConfigDirective;
+use AndyDefer\DirectiveForge\Directives\MakeDataDirective;
 use AndyDefer\DirectiveForge\Directives\MakeDirective;
 use AndyDefer\DirectiveForge\Directives\MakeRecordDirective;
 use AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective;
@@ -18,6 +20,7 @@ use AndyDefer\DirectiveForge\Directives\MakeRequestDirective;
 use AndyDefer\DirectiveForge\Directives\MakeServiceDirective;
 use AndyDefer\DirectiveForge\Directives\MakeTaskDirective;
 use AndyDefer\DirectiveForge\Directives\MakeTypedCollectionDirective;
+use AndyDefer\DirectiveForge\Directives\MakeValueObjectDirective;
 use AndyDefer\DirectiveForge\Tests\Unit\UnitTestCase;
 
 final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
@@ -38,8 +41,8 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
     {
         parent::setUp();
 
-        // Initialize the testing environment
-        $this->initDirectiveTesting();
+        // Arrange: Initialize the testing environment
+        $this->initDirectiveTesting(bootLaravel: false);
 
         $this->signatureValidator = new SignatureValidationService();
         $this->namingService = new DirectiveNamingService();
@@ -97,6 +100,21 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
         return new MakeRequestDirective($this->interaction);
     }
 
+    private function getMakeValueObjectDirective(): MakeValueObjectDirective
+    {
+        return new MakeValueObjectDirective($this->interaction);
+    }
+
+    private function getMakeConfigDirective(): MakeConfigDirective
+    {
+        return new MakeConfigDirective($this->interaction);
+    }
+
+    private function getMakeDataDirective(): MakeDataDirective
+    {
+        return new MakeDataDirective($this->interaction);
+    }
+
     private function createDirectories(): void
     {
         $directories = [
@@ -108,6 +126,9 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
             $this->directiveTempDir . '/app/Collections',
             $this->directiveTempDir . '/app/Services',
             $this->directiveTempDir . '/app/Http/Requests',
+            $this->directiveTempDir . '/app/ValueObjects',
+            $this->directiveTempDir . '/app/Configs',
+            $this->directiveTempDir . '/app/Data',
         ];
 
         foreach ($directories as $directory) {
@@ -128,6 +149,9 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
             'make-typed-collection', 'create-collection', 'make-collection' => $this->getMakeTypedCollectionDirective(),
             'make-service', 'create-service', 'make-svc' => $this->getMakeServiceDirective(),
             'make-request', 'create-request', 'make-req' => $this->getMakeRequestDirective(),
+            'make-vo', 'create-vo', 'make-value-object' => $this->getMakeValueObjectDirective(),
+            'make-config', 'create-config', 'make-cfg' => $this->getMakeConfigDirective(),
+            'make-data', 'create-data', 'make-dto' => $this->getMakeDataDirective(),
             default => throw new \InvalidArgumentException("Unknown directive: {$signature}"),
         };
 
@@ -140,14 +164,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_directive_with_simple_name(): void
     {
-        // Arrange: Prepare directive name
+        // Arrange
         $directiveName = 'user-list';
 
-        // Act: Run make-directive command
+        // Act
         $response = $this->registerAndRun('make-directive', [$directiveName]);
         $fullPath = $this->directiveTempDir . '/app/Directives/UserListDirective.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
@@ -155,14 +179,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_directive_with_subdirectory(): void
     {
-        // Arrange: Prepare directive name with subdirectory
+        // Arrange
         $directiveName = 'user/domain/hello-directive';
 
-        // Act: Run make-directive command
+        // Act
         $response = $this->registerAndRun('make-directive', [$directiveName]);
         $fullPath = $this->directiveTempDir . '/app/Directives/User/Domain/HelloDirective.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
@@ -170,14 +194,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_directive_with_alias_create_directive(): void
     {
-        // Arrange: Register directive
+        // Arrange
         $this->registerDirective($this->getMakeDirective());
 
-        // Act: Run using alias
+        // Act
         $response = $this->runDirective('create-directive', ['cache-clear']);
         $fullPath = $this->directiveTempDir . '/app/Directives/CacheClearDirective.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
@@ -185,14 +209,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_directive_with_alias_make_cmd(): void
     {
-        // Arrange: Register directive
+        // Arrange
         $this->registerDirective($this->getMakeDirective());
 
-        // Act: Run using alias
+        // Act
         $response = $this->runDirective('make-cmd', ['test-cmd']);
         $fullPath = $this->directiveTempDir . '/app/Directives/TestCmdDirective.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
@@ -202,14 +226,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_action_with_simple_name(): void
     {
-        // Arrange: Prepare action name
+        // Arrange
         $actionName = 'user/show';
 
-        // Act: Run make-action command
+        // Act
         $response = $this->registerAndRun('make-action', [$actionName]);
         $fullPath = $this->directiveTempDir . '/app/Actions/User/ShowAction.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
@@ -217,14 +241,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_action_with_subdirectory(): void
     {
-        // Arrange: Prepare action name with subdirectory
+        // Arrange
         $actionName = 'api/v1/users/show';
 
-        // Act: Run make-action command
+        // Act
         $response = $this->registerAndRun('make-action', [$actionName]);
         $fullPath = $this->directiveTempDir . '/app/Actions/Api/V1/Users/ShowAction.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
@@ -232,14 +256,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_action_with_alias_make_act(): void
     {
-        // Arrange: Register directive
+        // Arrange
         $this->registerDirective($this->getMakeActionDirective());
 
-        // Act: Run using alias
+        // Act
         $response = $this->runDirective('make-act', ['user/profile']);
         $fullPath = $this->directiveTempDir . '/app/Actions/User/ProfileAction.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
@@ -249,14 +273,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_task(): void
     {
-        // Arrange: Prepare task name
+        // Arrange
         $taskName = 'send-welcome-email';
 
-        // Act: Run make-task command
+        // Act
         $response = $this->registerAndRun('make-task', [$taskName]);
         $fullPath = $this->directiveTempDir . '/app/Tasks/SendWelcomeEmailTask.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('task created successfully!', strtolower($response->output));
@@ -264,14 +288,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_task_with_subdirectory(): void
     {
-        // Arrange: Prepare task name with subdirectory
+        // Arrange
         $taskName = 'user/send-welcome-email';
 
-        // Act: Run make-task command
+        // Act
         $response = $this->registerAndRun('make-task', [$taskName]);
         $fullPath = $this->directiveTempDir . '/app/Tasks/User/SendWelcomeEmailTask.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('task created successfully!', strtolower($response->output));
@@ -279,14 +303,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_task_with_alias_make_job(): void
     {
-        // Arrange: Register directive
+        // Arrange
         $this->registerDirective($this->getMakeTaskDirective());
 
-        // Act: Run using alias
+        // Act
         $response = $this->runDirective('make-job', ['process-order']);
         $fullPath = $this->directiveTempDir . '/app/Tasks/ProcessOrderTask.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('task created successfully!', strtolower($response->output));
@@ -296,14 +320,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_repository(): void
     {
-        // Arrange: Prepare repository name
+        // Arrange
         $repositoryName = 'user';
 
-        // Act: Run make-repository command
+        // Act
         $response = $this->registerAndRun('make-repository', [$repositoryName]);
         $fullPath = $this->directiveTempDir . '/app/Repositories/UserRepository.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
@@ -311,14 +335,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_repository_with_subdirectory(): void
     {
-        // Arrange: Prepare repository name with subdirectory
+        // Arrange
         $repositoryName = 'admin/user';
 
-        // Act: Run make-repository command
+        // Act
         $response = $this->registerAndRun('make-repository', [$repositoryName]);
         $fullPath = $this->directiveTempDir . '/app/Repositories/Admin/UserRepository.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
@@ -326,14 +350,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_repository_with_alias_make_repo(): void
     {
-        // Arrange: Register directive
+        // Arrange
         $this->registerDirective($this->getMakeRepositoryDirective());
 
-        // Act: Run using alias
+        // Act
         $response = $this->runDirective('make-repo', ['product']);
         $fullPath = $this->directiveTempDir . '/app/Repositories/ProductRepository.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
@@ -343,14 +367,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_record(): void
     {
-        // Arrange: Prepare record name
+        // Arrange
         $recordName = 'user-data';
 
-        // Act: Run make-record command
+        // Act
         $response = $this->registerAndRun('make-record', [$recordName]);
         $fullPath = $this->directiveTempDir . '/app/Records/UserDataRecord.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
@@ -358,14 +382,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_record_with_subdirectory(): void
     {
-        // Arrange: Prepare record name with subdirectory
+        // Arrange
         $recordName = 'api/user-data';
 
-        // Act: Run make-record command
+        // Act
         $response = $this->registerAndRun('make-record', [$recordName]);
         $fullPath = $this->directiveTempDir . '/app/Records/Api/UserDataRecord.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
@@ -373,14 +397,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_record_with_alias_make_dto(): void
     {
-        // Arrange: Register directive
+        // Arrange
         $this->registerDirective($this->getMakeRecordDirective());
 
-        // Act: Run using alias
+        // Act
         $response = $this->runDirective('make-dto', ['product-data']);
         $fullPath = $this->directiveTempDir . '/app/Records/ProductDataRecord.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
@@ -390,18 +414,18 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_typed_collection(): void
     {
-        // Arrange: Prepare collection name and item type
+        // Arrange
         $collectionName = 'user-collection';
         $itemType = 'UserRecord';
 
-        // Act: Run make-typed-collection command
+        // Act
         $response = $this->registerAndRun('make-typed-collection', [
             $collectionName,
             "--item-type={$itemType}",
         ]);
         $fullPath = $this->directiveTempDir . '/app/Collections/UserCollection.php';
 
-        // Assert: Verify success and file content
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('UserRecord', file_get_contents($fullPath));
@@ -410,18 +434,18 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_typed_collection_with_subdirectory(): void
     {
-        // Arrange: Prepare collection name with subdirectory
+        // Arrange
         $collectionName = 'admin/user-collection';
         $itemType = 'UserRecord';
 
-        // Act: Run make-typed-collection command
+        // Act
         $response = $this->registerAndRun('make-typed-collection', [
             $collectionName,
             "--item-type={$itemType}",
         ]);
         $fullPath = $this->directiveTempDir . '/app/Collections/Admin/UserCollection.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
@@ -429,17 +453,17 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_typed_collection_with_alias_make_collection(): void
     {
-        // Arrange: Register directive
+        // Arrange
         $this->registerDirective($this->getMakeTypedCollectionDirective());
 
-        // Act: Run using alias
+        // Act
         $response = $this->runDirective('make-collection', [
             'product-collection',
             '--item-type=ProductRecord',
         ]);
         $fullPath = $this->directiveTempDir . '/app/Collections/ProductCollection.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
@@ -447,14 +471,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_typed_collection_requires_item_type(): void
     {
-        // Arrange: Prepare collection name without item type
+        // Arrange
         $collectionName = 'user-collection';
 
-        // Act: Run make-typed-collection command without item type
+        // Act
         $response = $this->registerAndRun('make-typed-collection', [$collectionName]);
         $fullPath = $this->directiveTempDir . '/app/Collections/UserCollection.php';
 
-        // Assert: Verify error and no file creation
+        // Assert
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
         $this->assertStringContainsString('Item type is required', $response->output);
         $this->assertFileDoesNotExist($fullPath);
@@ -464,14 +488,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_service(): void
     {
-        // Arrange: Prepare service name
+        // Arrange
         $serviceName = 'payment-processor';
 
-        // Act: Run make-service command
+        // Act
         $response = $this->registerAndRun('make-service', [$serviceName]);
         $fullPath = $this->directiveTempDir . '/app/Services/PaymentProcessorService.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('service created successfully!', strtolower($response->output));
@@ -479,14 +503,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_service_with_subdirectory(): void
     {
-        // Arrange: Prepare service name with subdirectory
+        // Arrange
         $serviceName = 'api/payment-processor';
 
-        // Act: Run make-service command
+        // Act
         $response = $this->registerAndRun('make-service', [$serviceName]);
         $fullPath = $this->directiveTempDir . '/app/Services/Api/PaymentProcessorService.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('service created successfully!', strtolower($response->output));
@@ -494,14 +518,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_service_with_alias_make_svc(): void
     {
-        // Arrange: Register directive
+        // Arrange
         $this->registerDirective($this->getMakeServiceDirective());
 
-        // Act: Run using alias
+        // Act
         $response = $this->runDirective('make-svc', ['notification-sender']);
         $fullPath = $this->directiveTempDir . '/app/Services/NotificationSenderService.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('service created successfully!', strtolower($response->output));
@@ -511,14 +535,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_request(): void
     {
-        // Arrange: Prepare request name
+        // Arrange
         $requestName = 'StoreUserRequest';
 
-        // Act: Run make-request command
+        // Act
         $response = $this->registerAndRun('make-request', [$requestName]);
         $fullPath = $this->directiveTempDir . '/app/Http/Requests/StoreUserRequest.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('request created successfully!', strtolower($response->output));
@@ -526,14 +550,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_request_with_subdirectory(): void
     {
-        // Arrange: Prepare request name with subdirectory
+        // Arrange
         $requestName = 'api/v1/StoreUserRequest';
 
-        // Act: Run make-request command
+        // Act
         $response = $this->registerAndRun('make-request', [$requestName]);
         $fullPath = $this->directiveTempDir . '/app/Http/Requests/Api/V1/StoreUserRequest.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('request created successfully!', strtolower($response->output));
@@ -541,60 +565,190 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
 
     public function test_make_request_with_alias_make_req(): void
     {
-        // Arrange: Register directive
+        // Arrange
         $this->registerDirective($this->getMakeRequestDirective());
 
-        // Act: Run using alias
+        // Act
         $response = $this->runDirective('make-req', ['LoginRequest']);
         $fullPath = $this->directiveTempDir . '/app/Http/Requests/LoginRequest.php';
 
-        // Assert: Verify success and file creation
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('request created successfully!', strtolower($response->output));
+    }
+
+    // ==================== Value Object Tests ====================
+
+    public function test_make_vo(): void
+    {
+        // Arrange
+        $voName = 'EmailAddressVO';
+
+        // Act
+        $response = $this->registerAndRun('make-vo', [$voName]);
+        $fullPath = $this->directiveTempDir . '/app/ValueObjects/EmailAddressVO.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($fullPath);
+        $this->assertStringContainsString('value-object created successfully!', strtolower($response->output));
+    }
+
+    public function test_make_vo_with_subdirectory(): void
+    {
+        // Arrange
+        $voName = 'User/EmailAddressVO';
+
+        // Act
+        $response = $this->registerAndRun('make-vo', [$voName]);
+        $fullPath = $this->directiveTempDir . '/app/ValueObjects/User/EmailAddressVO.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($fullPath);
+        $this->assertStringContainsString('value-object created successfully!', strtolower($response->output));
+    }
+
+    // ==================== Config Tests ====================
+
+    public function test_make_config(): void
+    {
+        // Arrange
+        $configName = 'DatabaseConfig';
+
+        // Act
+        $response = $this->registerAndRun('make-config', [$configName]);
+        $fullPath = $this->directiveTempDir . '/app/Configs/DatabaseConfig.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($fullPath);
+        $this->assertStringContainsString('config created successfully!', strtolower($response->output));
+    }
+
+    public function test_make_config_with_subdirectory(): void
+    {
+        // Arrange
+        $configName = 'Database/MysqlConfig';
+
+        // Act
+        $response = $this->registerAndRun('make-config', [$configName]);
+        $fullPath = $this->directiveTempDir . '/app/Configs/Database/MysqlConfig.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($fullPath);
+        $this->assertStringContainsString('config created successfully!', strtolower($response->output));
+    }
+
+    // ==================== Data DTO Tests ====================
+
+    public function test_make_data(): void
+    {
+        // Arrange
+        $dataName = 'user';
+
+        // Act
+        $response = $this->registerAndRun('make-data', [$dataName]);
+        $fullPath = $this->directiveTempDir . '/app/Data/UserData.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($fullPath);
+        $this->assertStringContainsString('data created successfully!', strtolower($response->output));
+    }
+
+    public function test_make_data_with_subdirectory(): void
+    {
+        // Arrange
+        $dataName = 'api/user';
+
+        // Act
+        $response = $this->registerAndRun('make-data', [$dataName]);
+        $fullPath = $this->directiveTempDir . '/app/Data/Api/UserData.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($fullPath);
+        $this->assertStringContainsString('data created successfully!', strtolower($response->output));
+    }
+
+    public function test_make_data_with_alias_make_dto(): void
+    {
+        // Arrange
+        $this->registerDirective($this->getMakeDataDirective());
+
+        // Act
+        $response = $this->runDirective('make-dto', ['product']);
+        $fullPath = $this->directiveTempDir . '/app/Data/ProductData.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($fullPath);
+        $this->assertStringContainsString('data created successfully!', strtolower($response->output));
+    }
+
+    public function test_make_data_with_fully_option(): void
+    {
+        // Arrange
+        $dataName = 'order';
+
+        // Act
+        $response = $this->registerAndRun('make-data', [$dataName, '--fully']);
+
+        $dataPath = $this->directiveTempDir . '/app/Data/OrderData.php';
+        $recordPath = $this->directiveTempDir . '/app/Records/OrderRecord.php';
+        $collectionPath = $this->directiveTempDir . '/app/Collections/OrderDataCollection.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertFileExists($dataPath);
+        $this->assertFileExists($recordPath);
+        $this->assertFileExists($collectionPath);
+        $this->assertStringContainsString('Fully created', $response->output);
     }
 
     // ==================== Error Handling Tests ====================
 
     public function test_prevent_duplicate_file_creation(): void
     {
-        // Arrange: First creation
+        // Arrange
         $directiveName = 'user-list';
 
-        // Act: First run (should succeed)
+        // Act: First run
         $firstResponse = $this->registerAndRun('make-directive', [$directiveName]);
 
-        // Assert: Verify first creation succeeded
+        // Assert: First creation succeeded
         $this->assertSame(ExitCode::SUCCESS, $firstResponse->exitCode);
-        $this->assertStringContainsString('directive created successfully!', strtolower($firstResponse->output));
 
-        // Act: Second run with same name (should fail)
+        // Act: Second run
         $secondResponse = $this->registerAndRun('make-directive', [$directiveName]);
 
-        // Assert: Verify failure message
+        // Assert: Failure message
         $this->assertSame(ExitCode::FAILURE, $secondResponse->exitCode);
         $this->assertStringContainsString('File already exists', $secondResponse->output);
     }
 
     public function test_invalid_directive_name(): void
     {
-        // Arrange: Prepare invalid directive name with @ symbol
+        // Arrange
         $invalidName = 'user@list';
 
-        // Act: Run make-directive with invalid name
+        // Act
         $response = $this->registerAndRun('make-directive', [$invalidName]);
 
-        // Assert: Verify error
+        // Assert
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
         $this->assertStringContainsString('Invalid directive name', $response->output);
     }
 
     public function test_missing_name_parameter(): void
     {
-        // Act: Run make-directive without name
+        // Act
         $response = $this->registerAndRun('make-directive');
 
-        // Assert: Verify error
+        // Assert
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
         $this->assertStringContainsString('Not enough arguments', $response->output);
     }
@@ -612,11 +766,14 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
         $this->registerDirective($this->getMakeTypedCollectionDirective());
         $this->registerDirective($this->getMakeServiceDirective());
         $this->registerDirective($this->getMakeRequestDirective());
+        $this->registerDirective($this->getMakeValueObjectDirective());
+        $this->registerDirective($this->getMakeConfigDirective());
+        $this->registerDirective($this->getMakeDataDirective());
 
-        // Act: Run help command
+        // Act
         $response = $this->runDirective('--help');
 
-        // Assert: Verify help contains system commands
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('--list', $response->output);
         $this->assertStringContainsString('--help', $response->output);
@@ -634,52 +791,56 @@ final class DirectiveForgeCompleteIntegrationTest extends UnitTestCase
         $this->registerDirective($this->getMakeTypedCollectionDirective());
         $this->registerDirective($this->getMakeServiceDirective());
         $this->registerDirective($this->getMakeRequestDirective());
+        $this->registerDirective($this->getMakeValueObjectDirective());
+        $this->registerDirective($this->getMakeConfigDirective());
+        $this->registerDirective($this->getMakeDataDirective());
 
-        // Act: Run list command
+        // Act
         $response = $this->runDirective('--list');
 
-        // Assert: Verify list contains all directives
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
 
         $this->assertStringContainsString('make-directive', $response->output);
         $this->assertStringContainsString('create-directive', $response->output);
         $this->assertStringContainsString('make-cmd', $response->output);
-
         $this->assertStringContainsString('make-action', $response->output);
         $this->assertStringContainsString('create-action', $response->output);
         $this->assertStringContainsString('make-act', $response->output);
-
         $this->assertStringContainsString('make-task', $response->output);
         $this->assertStringContainsString('create-task', $response->output);
         $this->assertStringContainsString('make-job', $response->output);
-
         $this->assertStringContainsString('make-repository', $response->output);
         $this->assertStringContainsString('create-repository', $response->output);
         $this->assertStringContainsString('make-repo', $response->output);
-
         $this->assertStringContainsString('make-record', $response->output);
         $this->assertStringContainsString('create-record', $response->output);
         $this->assertStringContainsString('make-dto', $response->output);
-
         $this->assertStringContainsString('make-typed-collection', $response->output);
         $this->assertStringContainsString('create-collection', $response->output);
         $this->assertStringContainsString('make-collection', $response->output);
-
         $this->assertStringContainsString('make-service', $response->output);
         $this->assertStringContainsString('create-service', $response->output);
         $this->assertStringContainsString('make-svc', $response->output);
-
         $this->assertStringContainsString('make-request', $response->output);
         $this->assertStringContainsString('create-request', $response->output);
         $this->assertStringContainsString('make-req', $response->output);
+        $this->assertStringContainsString('make-vo', $response->output);
+        $this->assertStringContainsString('create-vo', $response->output);
+        $this->assertStringContainsString('make-value-object', $response->output);
+        $this->assertStringContainsString('make-config', $response->output);
+        $this->assertStringContainsString('create-config', $response->output);
+        $this->assertStringContainsString('make-cfg', $response->output);
+        $this->assertStringContainsString('make-data', $response->output);
+        $this->assertStringContainsString('create-data', $response->output);
     }
 
     public function test_version_command_shows_version(): void
     {
-        // Act: Run version command
+        // Act
         $response = $this->runDirective('--version');
 
-        // Assert: Verify version output
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('Laravel Directive', $response->output);
         $this->assertStringContainsString('Version:', $response->output);

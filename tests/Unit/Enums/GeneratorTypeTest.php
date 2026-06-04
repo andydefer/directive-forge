@@ -189,6 +189,24 @@ final class GeneratorTypeTest extends UnitTestCase
         $this->assertFalse($config->requiresType);
     }
 
+    public function test_data_config(): void
+    {
+        // Arrange: Get the DATA enum case
+        $generatorType = GeneratorType::DATA;
+
+        // Act: Get the configuration
+        $config = $generatorType->getConfig();
+
+        // Assert: Verify configuration values
+        $this->assertSame(GeneratorType::DATA, $config->type);
+        $this->assertSame('/app/Data/', $config->basePath);
+        $this->assertSame('App\\Data', $config->baseNamespace);
+        $this->assertStringContainsString('data.stub', $config->stubPath);
+        $this->assertSame('Data', $config->suffix);
+        $this->assertFalse($config->supportsType);
+        $this->assertFalse($config->requiresType);
+    }
+
     public function test_get_generator_class_for_directive(): void
     {
         // Arrange: Get the DIRECTIVE enum case
@@ -309,6 +327,18 @@ final class GeneratorTypeTest extends UnitTestCase
         $this->assertStringContainsString('ConfigGenerator', $generatorClass);
     }
 
+    public function test_get_generator_class_for_data(): void
+    {
+        // Arrange: Get the DATA enum case
+        $generatorType = GeneratorType::DATA;
+
+        // Act: Get the generator class
+        $generatorClass = $generatorType->getGeneratorClass();
+
+        // Assert: Verify generator class contains expected name
+        $this->assertStringContainsString('DataGenerator', $generatorClass);
+    }
+
     public function test_get_signature_for_directive(): void
     {
         // Arrange: Get the DIRECTIVE enum case
@@ -427,6 +457,18 @@ final class GeneratorTypeTest extends UnitTestCase
 
         // Assert: Verify signature
         $this->assertSame('make-config', $signature);
+    }
+
+    public function test_get_signature_for_data(): void
+    {
+        // Arrange: Get the DATA enum case
+        $generatorType = GeneratorType::DATA;
+
+        // Act: Get the signature
+        $signature = $generatorType->getSignature();
+
+        // Assert: Verify signature
+        $this->assertSame('make-data', $signature);
     }
 
     public function test_get_aliases_for_directive(): void
@@ -557,5 +599,18 @@ final class GeneratorTypeTest extends UnitTestCase
         // Assert: Verify aliases
         $this->assertContains('create-config', $aliases);
         $this->assertContains('make-cfg', $aliases);
+    }
+
+    public function test_get_aliases_for_data(): void
+    {
+        // Arrange: Get the DATA enum case
+        $generatorType = GeneratorType::DATA;
+
+        // Act: Get the aliases
+        $aliases = $generatorType->getAliases();
+
+        // Assert: Verify aliases
+        $this->assertContains('create-data', $aliases);
+        $this->assertContains('make-dto', $aliases);
     }
 }
