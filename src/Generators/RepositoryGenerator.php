@@ -12,8 +12,7 @@ use AndyDefer\DirectiveForge\ValueObjects\PathInfo;
 /**
  * Generator for creating Repository classes.
  *
- * Creates Repository classes with corresponding Interface definitions
- * following the Repository pattern for database abstraction.
+ * Creates Repository classes with corresponding Record and FilterRecord.
  *
  * @author Andy Defer
  */
@@ -34,28 +33,24 @@ final class RepositoryGenerator extends AbstractGenerator
         $className = $pathInfo->className;
         $namespace = $pathInfo->getNamespace($config->baseNamespace);
 
-        // Remove 'Repository' suffix to create interface name
-        $interfaceName = $this->generateInterfaceName($className);
+        // Extraire le nom de base (supprimer le suffixe Repository)
+        $baseName = str_replace('Repository', '', $className);
+
+        // Normaliser le nom de base en PascalCase (pour gérer les tirets dans les noms de dossiers)
+        // Mais le className est déjà passé par toPascalCase dans extractPathInfo
+        // Donc on garde le baseName tel quel, il est déjà en PascalCase
+
+        // Pour les records, on utilise le baseName normalisé
+        $recordClassName = $baseName . 'Record';
+        $filterRecordClassName = $baseName . 'FilterRecord';
 
         $collection = new ReplacementCollection;
         $collection
             ->addReplacement('{{namespace}}', $namespace)
             ->addReplacement('{{class}}', $className)
-            ->addReplacement('{{interface}}', $interfaceName);
+            ->addReplacement('{{recordClass}}', $recordClassName)
+            ->addReplacement('{{filterRecordClass}}', $filterRecordClassName);
 
         return $collection;
-    }
-
-    /**
-     * Generates the interface name from the repository class name.
-     *
-     * Example: 'UserRepository' -> 'UserInterface'
-     *
-     * @param  string  $className  The repository class name (e.g., 'UserRepository')
-     * @return string The corresponding interface name (e.g., 'UserInterface')
-     */
-    private function generateInterfaceName(string $className): string
-    {
-        return str_replace('Repository', '', $className).'Interface';
     }
 }
