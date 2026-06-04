@@ -8,11 +8,15 @@ use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\Directive\Services\DirectiveNamingService;
 use AndyDefer\Directive\Services\SignatureValidationService;
 use AndyDefer\DirectiveForge\Directives\MakeActionDirective;
+use AndyDefer\DirectiveForge\Directives\MakeConfigDirective;
 use AndyDefer\DirectiveForge\Directives\MakeDirective;
 use AndyDefer\DirectiveForge\Directives\MakeRecordDirective;
 use AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective;
+use AndyDefer\DirectiveForge\Directives\MakeRequestDirective;
+use AndyDefer\DirectiveForge\Directives\MakeServiceDirective;
 use AndyDefer\DirectiveForge\Directives\MakeTaskDirective;
 use AndyDefer\DirectiveForge\Directives\MakeTypedCollectionDirective;
+use AndyDefer\DirectiveForge\Directives\MakeValueObjectDirective;
 use Illuminate\Support\ServiceProvider;
 
 final class DirectiveForgeServiceProvider extends ServiceProvider
@@ -59,6 +63,34 @@ final class DirectiveForgeServiceProvider extends ServiceProvider
         // MakeTypedCollectionDirective
         $this->app->singleton(MakeTypedCollectionDirective::class, function ($app) {
             return new MakeTypedCollectionDirective(
+                interaction: $app->make(DirectiveInteractionService::class),
+            );
+        });
+
+        // MakeServiceDirective
+        $this->app->singleton(MakeServiceDirective::class, function ($app) {
+            return new MakeServiceDirective(
+                interaction: $app->make(DirectiveInteractionService::class),
+            );
+        });
+
+        // MakeRequestDirective
+        $this->app->singleton(MakeRequestDirective::class, function ($app) {
+            return new MakeRequestDirective(
+                interaction: $app->make(DirectiveInteractionService::class),
+            );
+        });
+
+        // MakeValueObjectDirective
+        $this->app->singleton(MakeValueObjectDirective::class, function ($app) {
+            return new MakeValueObjectDirective(
+                interaction: $app->make(DirectiveInteractionService::class),
+            );
+        });
+
+        // MakeConfigDirective
+        $this->app->singleton(MakeConfigDirective::class, function ($app) {
+            return new MakeConfigDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
             );
         });

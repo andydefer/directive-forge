@@ -1,0 +1,55 @@
+<?php
+
+declare(strict_types=1);
+
+namespace AndyDefer\DirectiveForge\Directives;
+
+use AndyDefer\Directive\Enums\ExitCode;
+use AndyDefer\Directive\Services\DirectiveInteractionService;
+use AndyDefer\DirectiveForge\Generators\ServiceGenerator;
+use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
+
+/**
+ * Directive to create a new Service class.
+ *
+ * @author Andy Defer
+ */
+final class MakeServiceDirective extends BaseDirective
+{
+    public function __construct(DirectiveInteractionService $interaction)
+    {
+        parent::__construct($interaction);
+        $this->generator = new ServiceGenerator($interaction);
+    }
+
+    public function getSignature(): string
+    {
+        return 'make-service {name}';
+    }
+
+    public function getDescription(): string
+    {
+        return 'Create a new service class';
+    }
+
+    public function getAliases(): StringTypedCollection
+    {
+        $aliases = new StringTypedCollection;
+        $aliases->add('create-service', 'make-svc');
+
+        return $aliases;
+    }
+
+    public function execute(): ExitCode
+    {
+        $name = $this->argument('name');
+
+        if ($name === null) {
+            $this->error('Service name is required');
+
+            return ExitCode::INVALID_ARGUMENT;
+        }
+
+        return parent::execute();
+    }
+}

@@ -1,9 +1,9 @@
 /vendor/
 /docs/
-/.phpunit.cache/
 node_modules/
 npm-debug.log
 yarn-error.log
+.phpunit.cache/
 
 # Laravel 4 specific
 bootstrap/compiled.php
@@ -30,3 +30,5 @@ Homestead.json
 .env.production
 .phpactor.json
 auth.json
+.phpunit.cache/
+.phpunit.cache/

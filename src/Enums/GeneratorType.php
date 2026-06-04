@@ -7,11 +7,15 @@ namespace AndyDefer\DirectiveForge\Enums;
 use AndyDefer\Directive\Collections\ReplacementCollection;
 use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Generators\ActionGenerator;
+use AndyDefer\DirectiveForge\Generators\ConfigGenerator;
 use AndyDefer\DirectiveForge\Generators\DirectiveGenerator;
 use AndyDefer\DirectiveForge\Generators\RecordGenerator;
 use AndyDefer\DirectiveForge\Generators\RepositoryGenerator;
+use AndyDefer\DirectiveForge\Generators\RequestGenerator;
+use AndyDefer\DirectiveForge\Generators\ServiceGenerator;
 use AndyDefer\DirectiveForge\Generators\TaskGenerator;
 use AndyDefer\DirectiveForge\Generators\TypedCollectionGenerator;
+use AndyDefer\DirectiveForge\Generators\ValueObjectGenerator;
 use AndyDefer\DirectiveForge\Records\GeneratorConfig;
 
 /**
@@ -30,6 +34,10 @@ enum GeneratorType: string
     case REPOSITORY = 'repository';
     case RECORD = 'record';
     case TYPED_COLLECTION = 'typed-collection';
+    case SERVICE = 'service';
+    case REQUEST = 'request';
+    case VALUE_OBJECT = 'value-object';
+    case CONFIG = 'config';
 
     /**
      * Returns the generator configuration for this type.
@@ -48,15 +56,14 @@ enum GeneratorType: string
                 'basePath' => '/app/Directives/',
                 'baseNamespace' => 'App\\Directives',
                 'stubPath' => __DIR__ . '/../../stubs/directive.stub',
-                'extraReplacements' => [
+                'extraReplacements' => new ReplacementCollection([
                     new ReplacementRecord('{{date}}', date('Y-m-d H:i:s')),
-                ],
+                ]),
             ],
             self::ACTION => [
                 'basePath' => '/app/Actions/',
                 'baseNamespace' => 'App\\Actions',
                 'stubPath' => __DIR__ . '/../../stubs/action.stub',
-                // ✅ SUPPRESSION de 'supportsType' et 'requiresType'
             ],
             self::TASK => [
                 'basePath' => '/app/Tasks/',
@@ -79,6 +86,26 @@ enum GeneratorType: string
                 'stubPath' => __DIR__ . '/../../stubs/typed-collection.stub',
                 'requiresType' => true,
             ],
+            self::SERVICE => [
+                'basePath' => '/app/Services/',
+                'baseNamespace' => 'App\\Services',
+                'stubPath' => __DIR__ . '/../../stubs/service.stub',
+            ],
+            self::REQUEST => [
+                'basePath' => '/app/Http/Requests/',
+                'baseNamespace' => 'App\\Http\\Requests',
+                'stubPath' => __DIR__ . '/../../stubs/request.stub',
+            ],
+            self::VALUE_OBJECT => [
+                'basePath' => '/app/ValueObjects/',
+                'baseNamespace' => 'App\\ValueObjects',
+                'stubPath' => __DIR__ . '/../../stubs/value-object.stub',
+            ],
+            self::CONFIG => [
+                'basePath' => '/app/Configs/',
+                'baseNamespace' => 'App\\Configs',
+                'stubPath' => __DIR__ . '/../../stubs/config.stub',
+            ],
         };
 
         return GeneratorConfig::from(array_merge($baseConfig, $specificConfig));
@@ -98,6 +125,10 @@ enum GeneratorType: string
             self::REPOSITORY => RepositoryGenerator::class,
             self::RECORD => RecordGenerator::class,
             self::TYPED_COLLECTION => TypedCollectionGenerator::class,
+            self::SERVICE => ServiceGenerator::class,
+            self::REQUEST => RequestGenerator::class,
+            self::VALUE_OBJECT => ValueObjectGenerator::class,
+            self::CONFIG => ConfigGenerator::class,
         };
     }
 
@@ -115,6 +146,10 @@ enum GeneratorType: string
             self::REPOSITORY => 'make-repository',
             self::RECORD => 'make-record',
             self::TYPED_COLLECTION => 'make-typed-collection',
+            self::SERVICE => 'make-service',
+            self::REQUEST => 'make-request',
+            self::VALUE_OBJECT => 'make-vo',
+            self::CONFIG => 'make-config',
         };
     }
 
@@ -132,6 +167,10 @@ enum GeneratorType: string
             self::REPOSITORY => 'Create a new repository class',
             self::RECORD => 'Create a new record class',
             self::TYPED_COLLECTION => 'Create a new typed collection class',
+            self::SERVICE => 'Create a new service class',
+            self::REQUEST => 'Create a new form request class',
+            self::VALUE_OBJECT => 'Create a new value object class (VO)',
+            self::CONFIG => 'Create a new configuration class',
         };
     }
 
@@ -149,6 +188,10 @@ enum GeneratorType: string
             self::REPOSITORY => ['create-repository', 'make-repo'],
             self::RECORD => ['create-record', 'make-dto'],
             self::TYPED_COLLECTION => ['create-collection', 'make-collection'],
+            self::SERVICE => ['create-service', 'make-svc'],
+            self::REQUEST => ['create-request', 'make-req'],
+            self::VALUE_OBJECT => ['create-vo', 'make-value-object'],
+            self::CONFIG => ['create-config', 'make-cfg'],
         };
     }
 
@@ -166,6 +209,10 @@ enum GeneratorType: string
             self::REPOSITORY => 'Repository',
             self::RECORD => 'Record',
             self::TYPED_COLLECTION => 'Collection',
+            self::SERVICE => 'Service',
+            self::REQUEST => 'Request',
+            self::VALUE_OBJECT => 'VO',
+            self::CONFIG => 'Config',
         };
     }
 }
