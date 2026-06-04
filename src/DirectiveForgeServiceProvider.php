@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge;
 
+use AndyDefer\Directive\DirectiveKernel;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\Directive\Services\DirectiveNamingService;
 use AndyDefer\Directive\Services\SignatureValidationService;
@@ -32,10 +33,11 @@ final class DirectiveForgeServiceProvider extends ServiceProvider
             );
         });
 
-        // MakeActionDirective
+        // MakeActionDirective - avec injection du Kernel
         $this->app->singleton(MakeActionDirective::class, function ($app) {
             return new MakeActionDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
+                kernel: $app->make(DirectiveKernel::class),
             );
         });
 

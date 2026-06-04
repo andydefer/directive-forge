@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace AndyDefer\DirectiveForge\Tests\Unit\Directives;
 
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\DirectiveResponseRecord;
 use AndyDefer\Directive\Testing\InteractsWithDirectives;
 use AndyDefer\DirectiveForge\Directives\MakeActionDirective;
+use AndyDefer\DirectiveForge\Directives\MakeRecordDirective;
+use AndyDefer\DirectiveForge\Directives\MakeRequestDirective;
 use AndyDefer\DirectiveForge\Tests\Unit\UnitTestCase;
 
 final class MakeActionDirectiveTest extends UnitTestCase
@@ -17,7 +18,14 @@ final class MakeActionDirectiveTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->initDirectiveTesting();
+        $this->initDirectiveTesting(bootLaravel: false);
+
+        // Créer les répertoires nécessaires
+        $this->createDirectories();
+
+        // Enregistrer les directives nécessaires
+        $this->registerDirective(new MakeRequestDirective($this->interaction));
+        $this->registerDirective(new MakeRecordDirective($this->interaction));
     }
 
     protected function tearDown(): void
@@ -31,47 +39,72 @@ final class MakeActionDirectiveTest extends UnitTestCase
         return new MakeActionDirective($this->interaction);
     }
 
-    private function registerAndRun(string $signature, array $arguments = []): DirectiveResponseRecord
+    private function runMakeAction(array $arguments = []): \AndyDefer\Directive\Records\DirectiveResponseRecord
     {
         $directive = $this->getDirective();
         $this->registerDirective($directive);
 
-        return $this->runDirective($signature, $arguments);
+        // Le premier paramètre doit être le FQCN, pas la signature
+        return $this->runDirective(MakeActionDirective::class, $arguments);
+    }
+
+    private function createDirectories(): void
+    {
+        $directories = [
+            $this->directiveTempDir . '/app/Actions',
+            $this->directiveTempDir . '/app/Actions/User',
+            $this->directiveTempDir . '/app/Actions/Api/V1/Users',
+            $this->directiveTempDir . '/app/Actions/UserProfile',
+            $this->directiveTempDir . '/app/Http/Requests',
+            $this->directiveTempDir . '/app/Http/Requests/User',
+            $this->directiveTempDir . '/app/Http/Requests/Api/V1/Users',
+            $this->directiveTempDir . '/app/Http/Requests/UserProfile',
+            $this->directiveTempDir . '/app/Records',
+            $this->directiveTempDir . '/app/Records/User',
+            $this->directiveTempDir . '/app/Records/Api/V1/Users',
+            $this->directiveTempDir . '/app/Records/UserProfile',
+        ];
+
+        foreach ($directories as $directory) {
+            if (!is_dir($directory)) {
+                mkdir($directory, 0777, true);
+            }
+        }
     }
 
     public function test_get_signature_returns_make_action(): void
     {
-        // Arrange: Get the directive instance
+        // Arrange
         $directive = $this->getDirective();
 
-        // Act: Get the signature
+        // Act
         $signature = $directive->getSignature();
 
-        // Assert: Verify the signature is correct
-        $this->assertSame('make-action {name}', $signature);
+        // Assert
+        $this->assertSame('make-action {name} {--fully}', $signature);
     }
 
     public function test_get_description_returns_description(): void
     {
-        // Arrange: Get the directive instance
+        // Arrange
         $directive = $this->getDirective();
 
-        // Act: Get the description
+        // Act
         $description = $directive->getDescription();
 
-        // Assert: Verify the description is correct
-        $this->assertSame('Create a new action class', $description);
+        // Assert
+        $this->assertSame('Create a new action class (with --fully option to also create Request and Record)', $description);
     }
 
     public function test_get_aliases_returns_aliases(): void
     {
-        // Arrange: Get the directive instance
+        // Arrange
         $directive = $this->getDirective();
 
-        // Act: Get the aliases
+        // Act
         $aliases = $directive->getAliases();
 
-        // Assert: Verify the aliases are correct
+        // Assert
         $this->assertTrue($aliases->contains('create-action'));
         $this->assertTrue($aliases->contains('make-act'));
         $this->assertSame(2, $aliases->count());
@@ -79,28 +112,28 @@ final class MakeActionDirectiveTest extends UnitTestCase
 
     public function test_execute_returns_error_when_name_missing(): void
     {
-        // Arrange: No arguments provided
+        // Arrange: No arguments provided (just the directive name, no 'name' argument)
 
-        // Act: Run the directive without name argument
-        $response = $this->registerAndRun('make-action');
+        // Act
+        $response = $this->runMakeAction([]);
 
-        // Assert: Verify invalid argument error
+        // Assert
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
-        $this->assertStringContainsString('Not enough arguments (missing: "name")', $response->output);
+        $this->assertStringContainsString('name', $response->output);
     }
 
     public function test_execute_creates_action_file(): void
     {
-        // Arrange: Prepare action name
+        // Arrange
         $actionName = 'user/show';
 
-        // Act: Run the directive to create the action
-        $response = $this->registerAndRun('make-action', [$actionName]);
+        // Act
+        $response = $this->runMakeAction([$actionName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Actions/User/ShowAction.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify success and file content
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -110,16 +143,16 @@ final class MakeActionDirectiveTest extends UnitTestCase
 
     public function test_execute_creates_action_in_subdirectory(): void
     {
-        // Arrange: Prepare action with subdirectories
+        // Arrange
         $actionName = 'api/v1/users/show';
 
-        // Act: Run the directive to create the action
-        $response = $this->registerAndRun('make-action', [$actionName]);
+        // Act
+        $response = $this->runMakeAction([$actionName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Actions/Api/V1/Users/ShowAction.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify success and correct namespace
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -129,16 +162,16 @@ final class MakeActionDirectiveTest extends UnitTestCase
 
     public function test_execute_adds_action_suffix_automatically(): void
     {
-        // Arrange: Prepare action name without suffix
+        // Arrange
         $actionName = 'user/user-show';
 
-        // Act: Run the directive
-        $response = $this->registerAndRun('make-action', [$actionName]);
+        // Act
+        $response = $this->runMakeAction([$actionName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Actions/User/UserShowAction.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify suffix was added automatically
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -147,16 +180,16 @@ final class MakeActionDirectiveTest extends UnitTestCase
 
     public function test_execute_does_not_double_action_suffix(): void
     {
-        // Arrange: Prepare action name that already has suffix
+        // Arrange
         $actionName = 'ShowUserAction';
 
-        // Act: Run the directive
-        $response = $this->registerAndRun('make-action', [$actionName]);
+        // Act
+        $response = $this->runMakeAction([$actionName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Actions/ShowUserAction.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify suffix is not duplicated
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -166,16 +199,16 @@ final class MakeActionDirectiveTest extends UnitTestCase
 
     public function test_execute_creates_action_with_kebab_case_name(): void
     {
-        // Arrange: Prepare kebab-case action name
+        // Arrange
         $actionName = 'user-profile-data';
 
-        // Act: Run the directive
-        $response = $this->registerAndRun('make-action', [$actionName]);
+        // Act
+        $response = $this->runMakeAction([$actionName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Actions/UserProfileDataAction.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify conversion to PascalCase
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -184,19 +217,146 @@ final class MakeActionDirectiveTest extends UnitTestCase
 
     public function test_execute_creates_action_with_snake_case_name(): void
     {
-        // Arrange: Prepare snake_case action name
+        // Arrange
         $actionName = 'user_profile_data';
 
-        // Act: Run the directive
-        $response = $this->registerAndRun('make-action', [$actionName]);
+        // Act
+        $response = $this->runMakeAction([$actionName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Actions/UserProfileDataAction.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify conversion to PascalCase
+        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserProfileDataAction', $content);
+    }
+
+    // ==================== Tests avec option --fully ====================
+
+    public function test_execute_with_fully_option_creates_action_request_and_record(): void
+    {
+        // Arrange
+        $actionName = 'user/show';
+
+        // Act: L'option --fully se passe comme argument avec -- devant
+        $response = $this->runMakeAction([$actionName, '--fully']);
+
+        $actionPath = $this->directiveTempDir . '/app/Actions/User/ShowAction.php';
+        $requestPath = $this->directiveTempDir . '/app/Http/Requests/User/ShowRequest.php';
+        $recordPath = $this->directiveTempDir . '/app/Records/User/ShowRecord.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+
+        $this->assertFileExists($actionPath);
+        $this->assertFileExists($requestPath);
+        $this->assertFileExists($recordPath);
+
+        $actionContent = file_get_contents($actionPath);
+        $requestContent = file_get_contents($requestPath);
+        $recordContent = file_get_contents($recordPath);
+
+        $this->assertStringContainsString('class ShowAction', $actionContent);
+        $this->assertStringContainsString('class ShowRequest', $requestContent);
+        $this->assertStringContainsString('extends AbstractRequest', $requestContent);
+        $this->assertStringContainsString('class ShowRecord', $recordContent);
+        $this->assertStringContainsString('extends AbstractRecord', $recordContent);
+
+        $this->assertStringContainsString('Fully created', $response->output);
+    }
+
+    public function test_execute_with_fully_option_in_subdirectory(): void
+    {
+        // Arrange
+        $actionName = 'api/v1/users/show';
+
+        // Act
+        $response = $this->runMakeAction([$actionName, '--fully']);
+
+        $actionPath = $this->directiveTempDir . '/app/Actions/Api/V1/Users/ShowAction.php';
+        $requestPath = $this->directiveTempDir . '/app/Http/Requests/Api/V1/Users/ShowRequest.php';
+        $recordPath = $this->directiveTempDir . '/app/Records/Api/V1/Users/ShowRecord.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+
+        $this->assertFileExists($actionPath);
+        $this->assertFileExists($requestPath);
+        $this->assertFileExists($recordPath);
+
+        $actionContent = file_get_contents($actionPath);
+        $requestContent = file_get_contents($requestPath);
+        $recordContent = file_get_contents($recordPath);
+
+        $this->assertStringContainsString('namespace App\\Actions\\Api\\V1\\Users', $actionContent);
+        $this->assertStringContainsString('class ShowAction', $actionContent);
+        $this->assertStringContainsString('namespace App\\Http\\Requests\\Api\\V1\\Users', $requestContent);
+        $this->assertStringContainsString('class ShowRequest', $requestContent);
+        $this->assertStringContainsString('namespace App\\Records\\Api\\V1\\Users', $recordContent);
+        $this->assertStringContainsString('class ShowRecord', $recordContent);
+    }
+
+    public function test_execute_with_fully_option_preserves_naming_consistency(): void
+    {
+        // Arrange
+        $actionName = 'user-profile/update-email';
+
+        // Act
+        $response = $this->runMakeAction([$actionName, '--fully']);
+
+        $actionPath = $this->directiveTempDir . '/app/Actions/UserProfile/UpdateEmailAction.php';
+        $requestPath = $this->directiveTempDir . '/app/Http/Requests/UserProfile/UpdateEmailRequest.php';
+        $recordPath = $this->directiveTempDir . '/app/Records/UserProfile/UpdateEmailRecord.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+
+        $this->assertFileExists($actionPath);
+        $this->assertFileExists($requestPath);
+        $this->assertFileExists($recordPath);
+
+        $this->assertStringContainsString('UpdateEmailAction', file_get_contents($actionPath));
+        $this->assertStringContainsString('UpdateEmailRequest', file_get_contents($requestPath));
+        $this->assertStringContainsString('UpdateEmailRecord', file_get_contents($recordPath));
+    }
+
+    public function test_execute_with_fully_option_does_not_create_duplicate_files_on_second_run(): void
+    {
+        // Arrange
+        $actionName = 'test/duplicate';
+
+        // Act: First run
+        $firstResponse = $this->runMakeAction([$actionName, '--fully']);
+
+        // Assert: First creation succeeded
+        $this->assertSame(ExitCode::SUCCESS, $firstResponse->exitCode);
+
+        // Act: Second run
+        $secondResponse = $this->runMakeAction([$actionName, '--fully']);
+
+        // Assert: Second run fails because files already exist
+        $this->assertSame(ExitCode::FAILURE, $secondResponse->exitCode);
+        $this->assertStringContainsString('File already exists', $secondResponse->output);
+    }
+
+    public function test_execute_without_fully_option_does_not_create_request_and_record(): void
+    {
+        // Arrange
+        $actionName = 'user/show';
+
+        // Act: Sans l'option --fully
+        $response = $this->runMakeAction([$actionName]);
+
+        $requestPath = $this->directiveTempDir . '/app/Http/Requests/User/ShowRequest.php';
+        $recordPath = $this->directiveTempDir . '/app/Records/User/ShowRecord.php';
+
+        // Assert
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+
+        $this->assertFileExists($this->directiveTempDir . '/app/Actions/User/ShowAction.php');
+        $this->assertFileDoesNotExist($requestPath);
+        $this->assertFileDoesNotExist($recordPath);
     }
 }

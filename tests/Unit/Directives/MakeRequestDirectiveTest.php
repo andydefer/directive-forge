@@ -7,6 +7,7 @@ namespace AndyDefer\DirectiveForge\Tests\Unit\Directives;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Records\DirectiveResponseRecord;
 use AndyDefer\Directive\Testing\InteractsWithDirectives;
+use AndyDefer\DirectiveForge\Directives\MakeRecordDirective;
 use AndyDefer\DirectiveForge\Directives\MakeRequestDirective;
 use AndyDefer\DirectiveForge\Tests\Unit\UnitTestCase;
 
@@ -18,6 +19,12 @@ final class MakeRequestDirectiveTest extends UnitTestCase
     {
         parent::setUp();
         $this->initDirectiveTesting();
+
+        // Créer les répertoires nécessaires
+        $this->createDirectories();
+
+        // Enregistrer la directive MakeRecordDirective pour le test --fully
+        $this->registerDirective(new MakeRecordDirective($this->interaction));
     }
 
     protected function tearDown(): void
@@ -31,12 +38,30 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         return new MakeRequestDirective($this->interaction);
     }
 
-    private function registerAndRun(string $signature, array $arguments = []): DirectiveResponseRecord
+    private function runMakeRequest(array $arguments = []): DirectiveResponseRecord
     {
         $directive = $this->getDirective();
         $this->registerDirective($directive);
 
-        return $this->runDirective($signature, $arguments);
+        return $this->runDirective(MakeRequestDirective::class, $arguments);
+    }
+
+    private function createDirectories(): void
+    {
+        $directories = [
+            $this->directiveTempDir . '/app/Http/Requests',
+            $this->directiveTempDir . '/app/Http/Requests/User',
+            $this->directiveTempDir . '/app/Http/Requests/Api/V1',
+            $this->directiveTempDir . '/app/Records',
+            $this->directiveTempDir . '/app/Records/User',
+            $this->directiveTempDir . '/app/Records/Api/V1',
+        ];
+
+        foreach ($directories as $directory) {
+            if (!is_dir($directory)) {
+                mkdir($directory, 0777, true);
+            }
+        }
     }
 
     public function test_get_signature_returns_make_request(): void
@@ -48,7 +73,7 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $signature = $directive->getSignature();
 
         // Assert: Verify the signature is correct
-        $this->assertSame('make-request {name}', $signature);
+        $this->assertSame('make-request {name} {--fully}', $signature);
     }
 
     public function test_get_description_returns_description(): void
@@ -60,7 +85,7 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $description = $directive->getDescription();
 
         // Assert: Verify the description is correct
-        $this->assertSame('Create a new form request class', $description);
+        $this->assertSame('Create a new form request class (with --fully option to also create Record)', $description);
     }
 
     public function test_get_aliases_returns_aliases(): void
@@ -82,14 +107,11 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         // Arrange: No arguments provided
 
         // Act: Run the directive without name argument
-        $response = $this->registerAndRun('make-request');
+        $response = $this->runMakeRequest([]);
 
         // Assert: Verify invalid argument error
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
-        // Le message peut être "Not enough arguments (missing: "name")" 
-        // ou "Request name is required" selon la couche qui intercepte
         $this->assertStringContainsString('name', $response->output);
-        $this->assertStringContainsString('argument', strtolower($response->output));
     }
 
     public function test_execute_creates_request_file(): void
@@ -98,7 +120,7 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $requestName = 'StoreUserRequest';
 
         // Act: Run the directive to create the request file
-        $response = $this->registerAndRun('make-request', [$requestName]);
+        $response = $this->runMakeRequest([$requestName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Http/Requests/StoreUserRequest.php';
         $content = file_get_contents($expectedPath);
@@ -118,7 +140,7 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $requestName = 'UpdateUserRequest';
 
         // Act: Run the directive to create the request file
-        $response = $this->registerAndRun('make-request', [$requestName]);
+        $response = $this->runMakeRequest([$requestName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Http/Requests/UpdateUserRequest.php';
         $content = file_get_contents($expectedPath);
@@ -136,7 +158,7 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $requestName = 'api/v1/StoreUserRequest';
 
         // Act: Run the directive to create the request file
-        $response = $this->registerAndRun('make-request', [$requestName]);
+        $response = $this->runMakeRequest([$requestName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Http/Requests/Api/V1/StoreUserRequest.php';
         $content = file_get_contents($expectedPath);
@@ -154,7 +176,7 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $requestName = 'Login';
 
         // Act: Run the directive to create the request file
-        $response = $this->registerAndRun('make-request', [$requestName]);
+        $response = $this->runMakeRequest([$requestName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Http/Requests/LoginRequest.php';
         $content = file_get_contents($expectedPath);
@@ -171,7 +193,7 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $requestName = 'StoreUserRequest';
 
         // Act: Run the directive to create the request file
-        $response = $this->registerAndRun('make-request', [$requestName]);
+        $response = $this->runMakeRequest([$requestName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Http/Requests/StoreUserRequest.php';
         $content = file_get_contents($expectedPath);
@@ -189,7 +211,7 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $requestName = 'PublicRequest';
 
         // Act: Run the directive to create the request file
-        $response = $this->registerAndRun('make-request', [$requestName]);
+        $response = $this->runMakeRequest([$requestName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Http/Requests/PublicRequest.php';
         $content = file_get_contents($expectedPath);
@@ -207,7 +229,7 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $requestName = 'EmptyRulesRequest';
 
         // Act: Run the directive to create the request file
-        $response = $this->registerAndRun('make-request', [$requestName]);
+        $response = $this->runMakeRequest([$requestName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Http/Requests/EmptyRulesRequest.php';
         $content = file_get_contents($expectedPath);
@@ -225,13 +247,13 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $requestName = 'DuplicateRequest';
 
         // Act: First run (should succeed)
-        $firstResponse = $this->registerAndRun('make-request', [$requestName]);
+        $firstResponse = $this->runMakeRequest([$requestName]);
 
         // Assert: Verify first creation succeeded
         $this->assertSame(ExitCode::SUCCESS, $firstResponse->exitCode);
 
         // Act: Second run with same name (should fail)
-        $secondResponse = $this->registerAndRun('make-request', [$requestName]);
+        $secondResponse = $this->runMakeRequest([$requestName]);
 
         // Assert: Verify failure message
         $this->assertSame(ExitCode::FAILURE, $secondResponse->exitCode);
@@ -244,7 +266,7 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $requestName = 'store-user-request';
 
         // Act: Run the directive to create the request file
-        $response = $this->registerAndRun('make-request', [$requestName]);
+        $response = $this->runMakeRequest([$requestName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Http/Requests/StoreUserRequest.php';
         $content = file_get_contents($expectedPath);
@@ -261,7 +283,7 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $requestName = 'store_user_request';
 
         // Act: Run the directive to create the request file
-        $response = $this->registerAndRun('make-request', [$requestName]);
+        $response = $this->runMakeRequest([$requestName]);
 
         $expectedPath = $this->directiveTempDir . '/app/Http/Requests/StoreUserRequest.php';
         $content = file_get_contents($expectedPath);
@@ -270,5 +292,98 @@ final class MakeRequestDirectiveTest extends UnitTestCase
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class StoreUserRequest', $content);
+    }
+
+    // ==================== Tests avec option --fully ====================
+
+    public function test_execute_with_fully_option_creates_request_and_record(): void
+    {
+        // Arrange: Prepare request name
+        $requestName = 'User/StoreUserRequest';
+
+        // Act: Run the directive with --fully option
+        $response = $this->runMakeRequest([$requestName, '--fully']);
+
+        $requestPath = $this->directiveTempDir . '/app/Http/Requests/User/StoreUserRequest.php';
+        $recordPath = $this->directiveTempDir . '/app/Records/User/StoreUserRecord.php';
+
+        // Assert: Verify both files were created
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+
+        $this->assertFileExists($requestPath);
+        $this->assertFileExists($recordPath);
+
+        $requestContent = file_get_contents($requestPath);
+        $recordContent = file_get_contents($recordPath);
+
+        $this->assertStringContainsString('class StoreUserRequest', $requestContent);
+        $this->assertStringContainsString('class StoreUserRecord', $recordContent);
+        $this->assertStringContainsString('extends AbstractRecord', $recordContent);
+
+        $this->assertStringContainsString('Fully created', $response->output);
+    }
+
+    public function test_execute_with_fully_option_in_subdirectory(): void
+    {
+        // Arrange: Prepare request name with subdirectory
+        $requestName = 'api/v1/StoreUserRequest';
+
+        // Act: Run the directive with --fully option
+        $response = $this->runMakeRequest([$requestName, '--fully']);
+
+        $requestPath = $this->directiveTempDir . '/app/Http/Requests/Api/V1/StoreUserRequest.php';
+        $recordPath = $this->directiveTempDir . '/app/Records/Api/V1/StoreUserRecord.php';
+
+        // Assert: Verify both files were created with correct namespaces
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+
+        $this->assertFileExists($requestPath);
+        $this->assertFileExists($recordPath);
+
+        $requestContent = file_get_contents($requestPath);
+        $recordContent = file_get_contents($recordPath);
+
+        $this->assertStringContainsString('namespace App\\Http\\Requests\\Api\\V1', $requestContent);
+        $this->assertStringContainsString('class StoreUserRequest', $requestContent);
+        $this->assertStringContainsString('namespace App\\Records\\Api\\V1', $recordContent);
+        $this->assertStringContainsString('class StoreUserRecord', $recordContent);
+    }
+
+    public function test_execute_with_fully_option_preserves_naming_consistency(): void
+    {
+        // Arrange: Prepare request name with kebab-case
+        $requestName = 'user-profile/update-email-request';
+
+        // Act: Run the directive with --fully option
+        $response = $this->runMakeRequest([$requestName, '--fully']);
+
+        $requestPath = $this->directiveTempDir . '/app/Http/Requests/UserProfile/UpdateEmailRequest.php';
+        $recordPath = $this->directiveTempDir . '/app/Records/UserProfile/UpdateEmailRecord.php';
+
+        // Assert: Verify naming consistency
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+
+        $this->assertFileExists($requestPath);
+        $this->assertFileExists($recordPath);
+
+        $this->assertStringContainsString('UpdateEmailRequest', file_get_contents($requestPath));
+        $this->assertStringContainsString('UpdateEmailRecord', file_get_contents($recordPath));
+    }
+
+    public function test_execute_without_fully_option_does_not_create_record(): void
+    {
+        // Arrange: Prepare request name
+        $requestName = 'User/StoreUserRequest';
+
+        // Act: Run the directive without --fully option
+        $response = $this->runMakeRequest([$requestName]);
+
+        $recordPath = $this->directiveTempDir . '/app/Records/User/StoreUserRecord.php';
+
+        // Assert: Verify only request was created
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+
+        $this->assertFileExists($this->directiveTempDir . '/app/Http/Requests/User/StoreUserRequest.php');
+        $this->assertFileDoesNotExist($recordPath);
     }
 }

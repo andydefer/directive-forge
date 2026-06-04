@@ -14,23 +14,6 @@ use AndyDefer\DomainStructures\Collections\Utility\ScalarTypedCollection;
 
 /**
  * Abstract base class for all Forge code generation directives.
- *
- * This class provides the foundation for directives that generate PHP files
- * from stubs. It handles:
- * - Argument parsing (name, type, item-type)
- * - Path information extraction
- * - Delegation to the appropriate generator implementation
- *
- * @example
- * final class MakeDirective extends BaseDirective
- * {
- *     protected function getGenerator(): GeneratorInterface
- *     {
- *         return new DirectiveGenerator();
- *     }
- * }
- *
- * @author Andy Defer
  */
 abstract class BaseDirective extends AbstractDirective
 {
@@ -49,11 +32,6 @@ abstract class BaseDirective extends AbstractDirective
 
     /**
      * Executes the directive to generate a new file.
-     *
-     * Validates the required 'name' argument, extracts path information,
-     * and delegates the generation to the configured generator.
-     *
-     * @return ExitCode The exit code indicating success or failure
      */
     public function execute(): ExitCode
     {
@@ -61,7 +39,6 @@ abstract class BaseDirective extends AbstractDirective
 
         if ($name === null) {
             $this->error('Name is required');
-
             return ExitCode::INVALID_ARGUMENT;
         }
 
@@ -82,21 +59,23 @@ abstract class BaseDirective extends AbstractDirective
      * - subPath: 'Admin\\User' (or empty string)
      * - segments: ['admin', 'user'] as ScalarTypedCollection
      *
-     * @param  string  $name  The input name (may contain slashes for subdirectories)
+     * @param string $name The input name (may contain slashes for subdirectories)
      * @return PathInfo The extracted path information as a Value Object
      */
-    private function extractPathInfo(string $name): PathInfo
+    protected function extractPathInfo(string $name): PathInfo
     {
         $segments = explode('/', $name);
         $rawClassName = array_pop($segments);
         $className = $this->toPascalCase($rawClassName);
-        $subPath = ! empty($segments) ? implode('\\', array_map('ucfirst', $segments)) : '';
 
-        // Convert segments array to ScalarTypedCollection
+        // Normaliser chaque segment individuellement avec toPascalCase
+        $normalizedSegments = array_map([$this, 'toPascalCase'], $segments);
+        $subPath = !empty($normalizedSegments) ? implode('\\', $normalizedSegments) : '';
+
+        // Convert segments array to ScalarTypedCollection (garder les originaux)
         $segmentsCollection = new ScalarTypedCollection;
         $segmentsCollection->add(...$segments);
 
-        // Use from() for hydration instead of direct constructor
         return PathInfo::from([
             'className' => $className,
             'subPath' => $subPath,
@@ -109,19 +88,19 @@ abstract class BaseDirective extends AbstractDirective
      *
      * Handles kebab-case, snake_case, and mixed case inputs.
      *
-     * @param  string  $string  The input string to convert
+     * @param string $string The input string to convert
      * @return string The PascalCase version of the input
      *
      * @example
      * toPascalCase('create-user')     // 'CreateUser'
      * toPascalCase('create_user')     // 'CreateUser'
      * toPascalCase('CreateUser')      // 'CreateUser'
+     * toPascalCase('user-profile')    // 'UserProfile'
      */
-    private function toPascalCase(string $string): string
+    protected function toPascalCase(string $string): string
     {
         $string = str_replace(['-', '_'], ' ', $string);
         $string = ucwords($string);
-
         return str_replace(' ', '', $string);
     }
 }
