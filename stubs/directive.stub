@@ -6,7 +6,8 @@ namespace {{namespace}};
 
 use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Records\Collections\Utility\StringTypedCollection;
+use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
+
 
 final class {{class}} extends AbstractDirective
 {
