@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge;
 
-use AndyDefer\Directive\DirectiveKernel;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\Directive\Services\DirectiveNamingService;
 use AndyDefer\Directive\Services\SignatureValidationService;
@@ -33,11 +32,10 @@ final class DirectiveForgeServiceProvider extends ServiceProvider
             );
         });
 
-        // MakeActionDirective - avec injection du Kernel
+        // MakeActionDirective
         $this->app->singleton(MakeActionDirective::class, function ($app) {
             return new MakeActionDirective(
                 interaction: $app->make(DirectiveInteractionService::class),
-                kernel: $app->make(DirectiveKernel::class),
             );
         });
 
@@ -100,6 +98,9 @@ final class DirectiveForgeServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // No bootstrapping needed
+        // Publier les stubs dans le dossier de l'application
+        $this->publishes([
+            __DIR__ . '/../stubs' => base_path('stubs/directive-forge'),
+        ], 'directive-forge-stubs');
     }
 }

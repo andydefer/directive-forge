@@ -1,10 +1,10 @@
 # Directive Forge
 
-**Code generation directives for Laravel - forge directives, actions, tasks, repositories, records and typed collections.**
+**Directives de génération de code pour Laravel - forgez des directives, actions, tâches, repositories, records, collections typées, objets de valeur et classes de configuration.**
 
-[![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue)](https://php.net)
+[![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-blue)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/Laravel-12.x%20%7C%2013.x%20%7C%2014.x%20%7C%2015.x-blue)](https://laravel.com)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![License](https://img.shields.io/badge/Licence-MIT-green)](LICENSE)
 
 ---
 
@@ -14,42 +14,45 @@
 composer require andydefer/directive-forge --dev
 ```
 
-### Requirements
+### Prérequis
 
-- PHP 8.1 or higher
-- Laravel 12.x, 13.x, 14.x, or 15.x
-- `andydefer/laravel-directive` ^2.1 (automatically installed)
+- PHP 8.2 ou supérieur
+- Laravel 12.x, 13.x, 14.x ou 15.x
+- `andydefer/laravel-directive` ^2.1 (installé automatiquement)
 
-### Service Provider (auto-discovered)
+### Service Provider (auto-découverte)
 
-The package uses Laravel's auto-discovery. The service provider will be automatically registered.
-
----
-
-## Overview
-
-Directive Forge provides a set of CLI commands to generate various PHP classes following clean architecture principles. It extends the [Laravel Directive](https://github.com/andydefer/laravel-directive) package to offer code scaffolding for:
-
-| Type | Description | Directory | Suffix |
-|------|-------------|-----------|--------|
-| **Directive** | CLI commands for your application | `app/Directives/` | `Directive` |
-| **Action** | Single-responsibility business logic | `app/Actions/` | `Action` |
-| **Task** | Background jobs and scheduled tasks | `app/Tasks/` | `Task` |
-| **Repository** | Data access layer | `app/Repositories/` | `Repository` |
-| **Record** | Type-safe data transfer objects | `app/Records/` | `Record` |
-| **TypedCollection** | Type-safe collections | `app/Collections/` | `Collection` |
+Le package utilise l'auto-découverte de Laravel. Le service provider sera automatiquement enregistré.
 
 ---
 
-## Usage
+## Vue d'ensemble
 
-### Generate a Directive
+Directive Forge fournit un ensemble de commandes CLI pour générer diverses classes PHP suivant les principes d'architecture propre. Il étend le package [Laravel Directive](https://github.com/andydefer/laravel-directive) pour offrir un échafaudage de code pour :
+
+| Type | Description | Dossier | Suffixe |
+|------|-------------|---------|---------|
+| **Directive** | Commandes CLI pour votre application | `app/Directives/` | `Directive` |
+| **Action** | Logique métier à responsabilité unique | `app/Actions/` | `Action` |
+| **Requête (Request)** | Validation des données entrantes | `app/Http/Requests/` | `Request` |
+| **Tâche (Task)** | Jobs en arrière-plan et tâches planifiées | `app/Tasks/` | `Task` |
+| **Repository** | Couche d'accès aux données | `app/Repositories/` | `Repository` |
+| **Record** | Objets de transfert de données typés | `app/Records/` | `Record` |
+| **Collection Typée** | Collections type-safe | `app/Collections/` | `Collection` |
+| **Objet de valeur (VO)** | Objets de valeur immutables du domaine | `app/ValueObjects/` | `VO` |
+| **Configuration (Config)** | Classes de configuration | `app/Configs/` | `Config` |
+
+---
+
+## Utilisation
+
+### Générer une Directive
 
 ```bash
 ./vendor/bin/directive make-directive user-list
 ```
 
-Generated: `app/Directives/UserListDirective.php`
+Généré : `app/Directives/UserListDirective.php`
 
 ```php
 <?php
@@ -60,7 +63,7 @@ namespace App\Directives;
 
 use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Records\Collections\Utility\StringTypedCollection;
+use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class UserListDirective extends AbstractDirective
 {
@@ -71,7 +74,7 @@ final class UserListDirective extends AbstractDirective
 
     public function getDescription(): string
     {
-        return 'Description for user-list';
+        return 'Description pour user-list';
     }
 
     public function getAliases(): StringTypedCollection
@@ -86,186 +89,300 @@ final class UserListDirective extends AbstractDirective
 
     public function execute(): ExitCode
     {
-        $this->info('Directive executed successfully!');
+        $this->info('Directive exécutée avec succès !');
         
         return ExitCode::SUCCESS;
     }
 }
 ```
 
-### Generate an Action
+### Générer une Action
 
 ```bash
-# API action (default)
-./vendor/bin/directive make-action user/show --type=api
+# Créer uniquement l'Action
+./vendor/bin/directive make-action user/show
 
-# Web action (with Inertia)
-./vendor/bin/directive make-action admin/dashboard --type=web
+# Créer l'Action, la Requête et le Record ensemble
+./vendor/bin/directive make-action user/show --fully
 ```
 
-Generated: `app/Actions/User/ShowAction.php` (API) or `app/Actions/Admin/DashboardAction.php` (Web)
+**Sans `--fully`** - crée uniquement : `app/Actions/User/ShowAction.php`
 
-### Generate a Task
+**Avec `--fully`** - crée les trois fichiers :
+- `app/Actions/User/ShowAction.php`
+- `app/Http/Requests/User/ShowRequest.php`
+- `app/Records/User/ShowRecord.php`
+
+Action générée (`app/Actions/User/ShowAction.php`) :
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions\User;
+
+use AndyDefer\Actions\Actions\AbstractAction;
+use AndyDefer\Actions\Http\ResponseFactory;
+use AndyDefer\DomainStructures\Abstracts\AbstractRecord;
+
+final class ShowAction extends AbstractAction
+{
+    protected function handle(AbstractRecord $request): ResponseFactory
+    {
+        // TODO: Implémentez votre logique métier ici
+        
+        return ResponseFactory::json(['message' => 'Action exécutée avec succès']);
+    }
+}
+```
+
+### Générer une Requête (Request)
+
+```bash
+# Créer uniquement la Requête
+./vendor/bin/directive make-request StoreUserRequest
+
+# Créer la Requête et le Record ensemble
+./vendor/bin/directive make-request StoreUserRequest --fully
+```
+
+**Sans `--fully`** - crée uniquement : `app/Http/Requests/StoreUserRequest.php`
+
+**Avec `--fully`** - crée les deux fichiers :
+- `app/Http/Requests/StoreUserRequest.php`
+- `app/Records/StoreUserRecord.php`
+
+Requête générée (`app/Http/Requests/StoreUserRequest.php`) :
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests;
+
+use AndyDefer\Actions\Http\Requests\AbstractRequest;
+use AndyDefer\DomainStructures\Abstracts\AbstractRecord;
+use AndyDefer\DomainStructures\Utils\EmptyRecord;
+
+final class StoreUserRequest extends AbstractRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [];
+    }
+
+    public function getRecord(): AbstractRecord
+    {
+        return new EmptyRecord();
+    }
+}
+```
+
+### Générer une Tâche (Task)
 
 ```bash
 ./vendor/bin/directive make-task send-welcome-email
 ```
 
-Generated: `app/Tasks/SendWelcomeEmailTask.php`
+Généré : `app/Tasks/SendWelcomeEmailTask.php`
 
-### Generate a Repository
+### Générer un Repository
 
 ```bash
 ./vendor/bin/directive make-repository user
 ```
 
-Generated: `app/Repositories/UserRepository.php`
+Généré : `app/Repositories/UserRepository.php`
 
-### Generate a Record
+### Générer un Record
 
 ```bash
 ./vendor/bin/directive make-record user-data
 ```
 
-Generated: `app/Records/UserDataRecord.php`
+Généré : `app/Records/UserDataRecord.php`
 
-### Generate a Typed Collection
+### Générer un Objet de valeur (Value Object)
 
 ```bash
-# With string type
+./vendor/bin/directive make-vo EmailAddress
+```
+
+Généré : `app/ValueObjects/EmailAddressVO.php`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\ValueObjects;
+
+use AndyDefer\DomainStructures\Abstracts\AbstractValueObject;
+
+final class EmailAddressVO extends AbstractValueObject
+{
+    public function __construct(
+        // TODO: Ajoutez les propriétés avec le mot-clé readonly
+    ) {
+        // TODO: Ajoutez la logique de validation
+    }
+}
+```
+
+### Générer une Classe de Configuration
+
+```bash
+./vendor/bin/directive make-config Database
+```
+
+Généré : `app/Configs/DatabaseConfig.php`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Configs;
+
+use AndyDefer\DomainStructures\Abstracts\AbstractConfig;
+
+final class DatabaseConfig extends AbstractConfig
+{
+    // TODO: Ajoutez les méthodes de configuration
+}
+```
+
+### Générer une Collection Typée
+
+```bash
+# Avec un type string
 ./vendor/bin/directive make-typed-collection user-collection --item-type=string
 
-# With custom record type
+# Avec un type personnalisé (Record)
 ./vendor/bin/directive make-typed-collection user-collection --item-type=UserRecord
 ```
 
-Generated: `app/Collections/UserCollection.php`
+Généré : `app/Collections/UserCollection.php`
 
 ---
 
-## Directory Structure with Subdirectories
+## Structure avec sous-dossiers
 
-You can organize your generated classes using subdirectories:
+Vous pouvez organiser vos classes générées en utilisant des sous-dossiers :
 
 ```bash
-# Directive with subdirectory
+# Directive avec sous-dossier
 ./vendor/bin/directive make-directive user/domain/hello-directive
 # → app/Directives/User/Domain/HelloDirective.php
 # → namespace App\Directives\User\Domain
 
-# Action with subdirectory
-./vendor/bin/directive make-action api/v1/users/show --type=api
+# Action avec sous-dossier
+./vendor/bin/directive make-action api/v1/users/show --fully
 # → app/Actions/Api/V1/Users/ShowAction.php
-# → namespace App\Actions\Api\V1\Users
+# → app/Http/Requests/Api/V1/Users/ShowRequest.php
+# → app/Records/Api/V1/Users/ShowRecord.php
 
-# Task with subdirectory
+# Tâche avec sous-dossier
 ./vendor/bin/directive make-task user/send-welcome-email
 # → app/Tasks/User/SendWelcomeEmailTask.php
+
+# Requête avec sous-dossier
+./vendor/bin/directive make-request api/v1/StoreUserRequest --fully
+# → app/Http/Requests/Api/V1/StoreUserRequest.php
+# → app/Records/Api/V1/StoreUserRecord.php
+
+# Objet de valeur avec sous-dossier
+./vendor/bin/directive make-vo User/EmailAddress
+# → app/ValueObjects/User/EmailAddressVO.php
+
+# Configuration avec sous-dossier
+./vendor/bin/directive make-config Database/Mysql
+# → app/Configs/Database/MysqlConfig.php
 ```
 
 ---
 
-## Commands Reference
+## Référence des commandes
 
-| Command | Aliases | Description |
-|---------|---------|-------------|
-| `make-directive {name}` | `create-directive`, `make-cmd` | Create a new directive class |
-| `make-action {name} {--type=api}` | `create-action`, `make-act` | Create a new action class (api/web) |
-| `make-task {name}` | `create-task`, `make-job` | Create a new task class |
-| `make-repository {name}` | `create-repository`, `make-repo` | Create a new repository class |
-| `make-record {name}` | `create-record`, `make-dto` | Create a new record class |
-| `make-typed-collection {name} {--item-type}` | `create-collection`, `make-collection` | Create a new typed collection class |
+| Commande | Alias | Description |
+|----------|-------|-------------|
+| `make-directive {name}` | `create-directive`, `make-cmd` | Crée une nouvelle classe de directive |
+| `make-action {name} {--fully}` | `create-action`, `make-act` | Crée une nouvelle classe d'action (avec `--fully` pour Requête + Record) |
+| `make-request {name} {--fully}` | `create-request`, `make-req` | Crée une nouvelle classe de requête (avec `--fully` pour Record) |
+| `make-task {name}` | `create-task`, `make-job` | Crée une nouvelle classe de tâche |
+| `make-repository {name}` | `create-repository`, `make-repo` | Crée une nouvelle classe de repository |
+| `make-record {name}` | `create-record`, `make-dto` | Crée une nouvelle classe de record |
+| `make-vo {name}` | `create-vo`, `make-value-object` | Crée un nouvel objet de valeur (VO) |
+| `make-config {name}` | `create-config`, `make-cfg` | Crée une nouvelle classe de configuration |
+| `make-typed-collection {name} {--item-type}` | `create-collection`, `make-collection` | Crée une nouvelle collection typée |
 
-### Global Options
+### Options globales
 
 | Option | Description |
 |--------|-------------|
-| `--list`, `-l` | List all available directives |
-| `--help`, `-h` | Show help message |
-| `--version`, `-v` | Show version information |
+| `--list`, `-l` | Liste toutes les directives disponibles |
+| `--help`, `-h` | Affiche l'aide |
+| `--version`, `-v` | Affiche la version |
+
+### Options spécifiques aux Actions
+
+| Option | Description |
+|--------|-------------|
+| `--fully` | Crée également les classes Requête et Record associées |
+
+### Options spécifiques aux Requêtes
+
+| Option | Description |
+|--------|-------------|
+| `--fully` | Crée également la classe Record associée |
+
+### Options pour les Collections typées
+
+| Option | Description |
+|--------|-------------|
+| `--item-type` | Requis. Le type des éléments de la collection (ex: `string`, `UserRecord`) |
 
 ---
 
-## Action Types
+## Convention de nommage intelligente
 
-Actions support two types with different stub templates:
+Directive Forge gère intelligemment les conversions de noms :
 
-### API Type (default)
-
-```php
-<?php
-
-namespace App\Actions\User;
-
-use AndyDefer\Actions\AbstractAction;
-use Illuminate\Http\JsonResponse;
-
-final class ShowAction extends AbstractAction
-{
-    public function execute(): JsonResponse
-    {
-        return $this->json([
-            'message' => 'Action executed successfully',
-            'data' => null,
-        ]);
-    }
-}
-```
-
-### Web Type (Inertia)
-
-```php
-<?php
-
-namespace App\Actions\Admin;
-
-use App\Http\Actions\AbstractAction;
-use AndyDefer\Records\Contracts\Recordable;
-use Inertia\Response as InertiaResponse;
-
-final class DashboardAction extends AbstractAction
-{
-    protected function handle(Recordable $request): InertiaResponse
-    {
-        return $this->inertia('Dashboard', [
-            'user' => auth()->user(),
-        ]);
-    }
-}
-```
-
----
-
-## Smart Naming Convention
-
-Directive Forge intelligently handles naming conversions:
-
-| Input | Class Name | Signature |
-|-------|------------|-----------|
+| Entrée | Nom de classe | Signature |
+|--------|---------------|-----------|
 | `user-list` | `UserListDirective` | `user-list` |
 | `hello` | `HelloDirective` | `hello` |
 | `hello-directive` | `HelloDirective` | `hello` |
-| `ShowUserAction` | `ShowUserAction` | (preserved) |
+| `ShowUserAction` | `ShowUserAction` | (préservé) |
+| `EmailAddress` | `EmailAddressVO` | (préservé) |
+| `Database` | `DatabaseConfig` | (préservé) |
 
-### Path Processing
+### Traitement des chemins
 
-- Slashes (`/`) create subdirectories
-- The last segment becomes the class name
-- Segments are converted to PascalCase for subdirectories
+- Les slashes (`/`) créent des sous-dossiers
+- Le dernier segment devient le nom de la classe
+- Les segments sont convertis en PascalCase pour les sous-dossiers (ex: `user-profile` → `UserProfile`)
 
 ```bash
-# Input: user/domain/hello-directive
-# Segments: ['user', 'domain']
-# Class name: 'hello-directive'
-# SubPath: 'User\Domain'
-# Final class: 'HelloDirective'
+# Entrée : user-profile/update-email
+# Segments : ['user-profile']
+# Nom de classe : 'update-email'
+# Sous-dossier : 'UserProfile'
+# Classe finale : 'UpdateEmailAction'
 ```
 
 ---
 
-## Testing
+## Tests
 
-### Unit Tests
+### Tests unitaires
 
 ```bash
 ./vendor/bin/phpunit --filter ActionGeneratorTest
@@ -274,16 +391,18 @@ Directive Forge intelligently handles naming conversions:
 ./vendor/bin/phpunit --filter RepositoryGeneratorTest
 ./vendor/bin/phpunit --filter TaskGeneratorTest
 ./vendor/bin/phpunit --filter TypedCollectionGeneratorTest
+./vendor/bin/phpunit --filter ValueObjectGeneratorTest
+./vendor/bin/phpunit --filter ConfigGeneratorTest
 ```
 
-### Integration Tests
+### Tests d'intégration
 
 ```bash
 ./vendor/bin/phpunit --filter FileCreationIntegrationTest
-./vendor/bin/phpunt --filter DirectiveForgeIntegrationTest
+./vendor/bin/phpunit --filter DirectiveForgeIntegrationTest
 ```
 
-### Run All Tests
+### Exécuter tous les tests
 
 ```bash
 ./vendor/bin/phpunit
@@ -301,22 +420,28 @@ Directive Forge intelligently handles naming conversions:
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │                   DIRECTIVES                         │   │
 │  │  - MakeDirective                                     │   │
-│  │  - MakeActionDirective                               │   │
+│  │  - MakeActionDirective (avec --fully)                │   │
+│  │  - MakeRequestDirective (avec --fully)               │   │
 │  │  - MakeTaskDirective                                 │   │
 │  │  - MakeRepositoryDirective                           │   │
 │  │  - MakeRecordDirective                               │   │
+│  │  - MakeValueObjectDirective                          │   │
+│  │  - MakeConfigDirective                               │   │
 │  │  - MakeTypedCollectionDirective                      │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                           │                               │
 │                           ▼                               │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │                   GENERATORS                         │   │
-│  │  - AbstractGenerator (normalization, file creation) │   │
+│  │                   GÉNÉRATEURS                        │   │
+│  │  - AbstractGenerator (normalisation, création)      │   │
 │  │  - DirectiveGenerator                               │   │
 │  │  - ActionGenerator                                  │   │
+│  │  - RequestGenerator                                 │   │
 │  │  - TaskGenerator                                    │   │
 │  │  - RepositoryGenerator                              │   │
 │  │  - RecordGenerator                                  │   │
+│  │  - ValueObjectGenerator                             │   │
+│  │  - ConfigGenerator                                  │   │
 │  │  - TypedCollectionGenerator                         │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                           │                               │
@@ -324,79 +449,90 @@ Directive Forge intelligently handles naming conversions:
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │                    STUBS                            │   │
 │  │  - directive.stub                                   │   │
-│  │  - action.stub / action.api.stub / action.web.stub │   │
+│  │  - action.stub                                      │   │
+│  │  - request.stub                                     │   │
 │  │  - task.stub                                        │   │
 │  │  - repository.stub                                  │   │
 │  │  - record.stub                                      │   │
+│  │  - value-object.stub                                │   │
+│  │  - config.stub                                      │   │
 │  │  - typed-collection.stub                            │   │
 │  └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Key Components
+### Composants clés
 
-| Component | Description |
+| Composant | Description |
 |-----------|-------------|
-| `BaseDirective` | Abstract directive with path parsing logic |
-| `AbstractGenerator` | Base generator with file creation and name normalization |
-| `GeneratorType` | Enum defining all generator configurations |
-| `PathInfo` | Value object for path and namespace handling |
-| `GeneratorConfig` | Immutable configuration for each generator type |
+| `BaseDirective` | Directive abstraite avec parsing et normalisation des chemins |
+| `AbstractGenerator` | Générateur de base pour la création de fichiers |
+| `GeneratorType` | Enum définissant toutes les configurations des générateurs |
+| `PathInfo` | Objet de valeur pour la gestion des chemins et namespaces |
+| `GeneratorConfig` | Configuration immuable pour chaque type de générateur |
 
 ---
 
 ## Configuration
 
-### Custom Stubs
+### Stubs personnalisés
 
-You can publish and customize the stubs:
+Vous pouvez publier et personnaliser les stubs :
 
 ```bash
 php artisan vendor:publish --tag=directive-forge-stubs
 ```
 
-Stubs will be copied to `stubs/directive-forge/` in your project root.
+Les stubs seront copiés dans `stubs/directive-forge/` à la racine de votre projet.
 
-### Custom Base Path
+### Chemin de base personnalisé
 
-You can modify the default directories by extending the generator configuration in your service provider:
+Vous pouvez modifier les dossiers par défaut en modifiant la configuration du générateur :
 
 ```php
-// In your AppServiceProvider
+// Dans votre AppServiceProvider
 use AndyDefer\DirectiveForge\Enums\GeneratorType;
-use AndyDefer\DirectiveForge\ValueObjects\GeneratorConfig;
 
-// Override configuration
+// Surcharge de la configuration
 GeneratorType::DIRECTIVE->getConfig()->basePath = '/app/Custom/Directives/';
 ```
 
 ---
 
-## Examples
+## Exemples
 
-### Complete Workflow Example
+### Flux de travail complet
 
 ```bash
-# 1. Create a directive to import users
+# 1. Créer une directive pour importer des utilisateurs
 ./vendor/bin/directive make-directive user/import
 
-# 2. Create an action to process the import
-./vendor/bin/directive make-action user/process-import --type=api
+# 2. Créer une action avec sa Requête et son Record
+./vendor/bin/directive make-action user/process-import --fully
 
-# 3. Create a task for batch processing
+# 3. Créer une requête avec son Record
+./vendor/bin/directive make-request api/v1/StoreUserRequest --fully
+
+# 4. Créer une tâche pour le traitement par lots
 ./vendor/bin/directive make-task user/send-notifications
 
-# 4. Create a repository for user data access
+# 5. Créer un repository pour l'accès aux données
 ./vendor/bin/directive make-repository user
 
-# 5. Create a record for user data transfer
+# 6. Créer un record pour le transfert de données
 ./vendor/bin/directive make-record user-data
 
-# 6. Create a typed collection for user records
+# 7. Créer un objet de valeur
+./vendor/bin/directive make-vo EmailAddress
+
+# 8. Créer une classe de configuration
+./vendor/bin/directive make-config Database
+
+# 9. Créer une collection typée
 ./vendor/bin/directive make-typed-collection user-collection --item-type=UserDataRecord
 ```
 
-### Resulting Structure
+### Structure résultante
 
 ```
 app/
@@ -406,89 +542,35 @@ app/
 ├── Actions/
 │   └── User/
 │       └── ProcessImportAction.php
+├── Http/
+│   └── Requests/
+│       ├── User/
+│       │   └── ProcessImportRequest.php
+│       └── Api/
+│           └── V1/
+│               └── StoreUserRequest.php
 ├── Tasks/
 │   └── User/
 │       └── SendNotificationsTask.php
 ├── Repositories/
 │   └── UserRepository.php
 ├── Records/
+│   ├── User/
+│   │   └── ProcessImportRecord.php
+│   ├── Api/
+│   │   └── V1/
+│   │       └── StoreUserRecord.php
 │   └── UserDataRecord.php
+├── ValueObjects/
+│   └── EmailAddressVO.php
+├── Configs/
+│   └── DatabaseConfig.php
 └── Collections/
     └── UserCollection.php
 ```
 
 ---
 
-## Extending Directive Forge
-
-### Adding a New Generator Type
-
-1. Add a new case to `GeneratorType` enum:
-
-```php
-case MY_TYPE = 'my-type';
-
-public function getConfig(): GeneratorConfig
-{
-    return match ($this) {
-        self::MY_TYPE => new GeneratorConfig(
-            type: $this,
-            basePath: '/app/MyTypes/',
-            baseNamespace: 'App\\MyTypes',
-            stubPath: __DIR__ . '/../../stubs/my-type.stub',
-            suffix: 'MyType',
-        ),
-        // ...
-    };
-}
-```
-
-2. Create a generator class extending `AbstractGenerator`:
-
-```php
-final class MyTypeGenerator extends AbstractGenerator
-{
-    public function __construct(DirectiveInteractionService $interaction)
-    {
-        parent::__construct($interaction);
-        $this->type = GeneratorType::MY_TYPE;
-    }
-
-    public function getReplacements(PathInfo $pathInfo, ?string $type = null, ?string $itemType = null): array
-    {
-        return [
-            '{{namespace}}' => $pathInfo->getNamespace($this->type->getConfig()->baseNamespace),
-            '{{class}}' => $pathInfo->className,
-        ];
-    }
-}
-```
-
-3. Create a directive class extending `BaseDirective`:
-
-```php
-final class MakeMyTypeDirective extends BaseDirective
-{
-    public function __construct(DirectiveInteractionService $interaction)
-    {
-        parent::__construct($interaction);
-        $this->generator = new MyTypeGenerator($interaction);
-    }
-
-    public function getSignature(): string
-    {
-        return 'make-my-type {name}';
-    }
-
-    // ...
-}
-```
-
-4. Register the directive in `DirectiveForgeServiceProvider`.
-
----
-
-## License
+## Licence
 
 MIT © [Andy Defer](https://github.com/andydefer)
-```

@@ -1,11 +1,12 @@
 # Pint Formatting Test Report
-*Generated: jeu. 04 juin 2026 15:03:36 WAT*
+*Generated: jeu. 04 juin 2026 15:11:11 WAT*
 
 
-  .....⨯⨯......⨯.⨯...⨯.....⨯...⨯.⨯.⨯⨯..⨯⨯⨯.⨯.⨯...⨯⨯⨯⨯⨯⨯...
+  ⨯....⨯⨯......⨯.⨯...⨯.....⨯...⨯.⨯.⨯⨯..⨯⨯⨯.⨯.⨯...⨯⨯⨯⨯⨯⨯...
 
   ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Laravel  
-    FAIL   ................................................................................................................................................. 56 files, 21 style issues  
+    FAIL   ................................................................................................................................................. 56 files, 22 style issues  
+  ⨯ src/DirectiveForgeServiceProvider.php                                                                                                                                 concat_space  
   ⨯ src/Directives/BaseDirective.php                                                                      not_operator_with_successor_space, blank_line_before_statement, phpdoc_align  
   ⨯ src/Directives/MakeActionDirective.php                            new_with_parentheses, concat_space, not_operator_with_successor_space, blank_line_before_statement, phpdoc_align  
   ⨯ src/Directives/MakeRequestDirective.php                                                 concat_space, not_operator_with_successor_space, blank_line_before_statement, phpdoc_align  
