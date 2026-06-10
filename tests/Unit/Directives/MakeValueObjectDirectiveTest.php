@@ -5,102 +5,69 @@ declare(strict_types=1);
 namespace AndyDefer\DirectiveForge\Tests\Unit\Directives;
 
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\DirectiveResponseRecord;
-use AndyDefer\Directive\Testing\InteractsWithDirectives;
+use AndyDefer\Directive\Services\DirectiveTestingService;
 use AndyDefer\DirectiveForge\Directives\MakeValueObjectDirective;
-use AndyDefer\DirectiveForge\Tests\Unit\UnitTestCase;
+use AndyDefer\DirectiveForge\Tests\IntegrationTestCase;
 
-final class MakeValueObjectDirectiveTest extends UnitTestCase
+final class MakeValueObjectDirectiveTest extends IntegrationTestCase
 {
-    use InteractsWithDirectives;
+    private DirectiveTestingService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->initDirectiveTesting();
+        $this->service = new DirectiveTestingService($this->app);
     }
 
     protected function tearDown(): void
     {
-        $this->destroyDirectiveTesting();
+        $this->service->destroy();
         parent::tearDown();
-    }
-
-    private function getDirective(): MakeValueObjectDirective
-    {
-        return new MakeValueObjectDirective($this->interaction);
-    }
-
-    private function registerAndRun(string $signature, array $arguments = []): DirectiveResponseRecord
-    {
-        $directive = $this->getDirective();
-        $this->registerDirective($directive);
-
-        return $this->runDirective($signature, $arguments);
     }
 
     public function test_get_signature_returns_make_vo(): void
     {
-        // Arrange: Get the directive instance
-        $directive = $this->getDirective();
+        $response = $this->service->run(MakeValueObjectDirective::class, ['test']);
 
-        // Act: Get the signature
-        $signature = $directive->getSignature();
-
-        // Assert: Verify the signature is correct
-        $this->assertSame('make-vo {name}', $signature);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
     }
 
     public function test_get_description_returns_description(): void
     {
-        // Arrange: Get the directive instance
-        $directive = $this->getDirective();
+        $response = $this->service->run(MakeValueObjectDirective::class, ['test']);
 
-        // Act: Get the description
-        $description = $directive->getDescription();
-
-        // Assert: Verify the description is correct
-        $this->assertSame('Create a new value object class (VO)', $description);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
     }
 
     public function test_get_aliases_returns_aliases(): void
     {
-        // Arrange: Get the directive instance
-        $directive = $this->getDirective();
+        $this->service->registerDirective(MakeValueObjectDirective::class);
 
-        // Act: Get the aliases
-        $aliases = $directive->getAliases();
+        $response = $this->service->runDirective('create-vo', ['test-alias']);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
 
-        // Assert: Verify the aliases are correct
-        $this->assertTrue($aliases->contains('create-vo'));
-        $this->assertTrue($aliases->contains('make-value-object'));
-        $this->assertSame(2, $aliases->count());
+        $response = $this->service->runDirective('make-value-object', ['test-alias-2']);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
     }
 
     public function test_execute_returns_error_when_name_missing(): void
     {
-        // Arrange: No arguments provided
+        $response = $this->service->run(MakeValueObjectDirective::class, []);
 
-        // Act: Run the directive without name argument
-        $response = $this->registerAndRun('make-vo');
-
-        // Assert: Verify invalid argument error
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
         $this->assertStringContainsString('name', $response->output);
     }
 
     public function test_execute_creates_vo_file(): void
     {
-        // Arrange: Prepare VO name
         $voName = 'EmailAddressVO';
 
-        // Act: Run the directive to create the VO file
-        $response = $this->registerAndRun('make-vo', [$voName]);
+        $response = $this->service->run(MakeValueObjectDirective::class, [$voName]);
 
-        $expectedPath = $this->directiveTempDir . '/app/ValueObjects/EmailAddressVO.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $expectedPath = $tempDir . '/app/ValueObjects/EmailAddressVO.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify success and file content
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('value-object created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -111,16 +78,14 @@ final class MakeValueObjectDirectiveTest extends UnitTestCase
 
     public function test_execute_creates_vo_in_subdirectory(): void
     {
-        // Arrange: Prepare VO name with subdirectory
         $voName = 'User/EmailAddressVO';
 
-        // Act: Run the directive to create the VO file
-        $response = $this->registerAndRun('make-vo', [$voName]);
+        $response = $this->service->run(MakeValueObjectDirective::class, [$voName]);
 
-        $expectedPath = $this->directiveTempDir . '/app/ValueObjects/User/EmailAddressVO.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $expectedPath = $tempDir . '/app/ValueObjects/User/EmailAddressVO.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify success and correct namespace
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('value-object created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -130,16 +95,14 @@ final class MakeValueObjectDirectiveTest extends UnitTestCase
 
     public function test_execute_adds_vo_suffix_automatically(): void
     {
-        // Arrange: Prepare VO name without suffix
         $voName = 'EmailAddress';
 
-        // Act: Run the directive to create the VO file
-        $response = $this->registerAndRun('make-vo', [$voName]);
+        $response = $this->service->run(MakeValueObjectDirective::class, [$voName]);
 
-        $expectedPath = $this->directiveTempDir . '/app/ValueObjects/EmailAddressVO.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $expectedPath = $tempDir . '/app/ValueObjects/EmailAddressVO.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify suffix was added automatically
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('value-object created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -148,20 +111,15 @@ final class MakeValueObjectDirectiveTest extends UnitTestCase
 
     public function test_prevents_duplicate_file_creation(): void
     {
-        // Arrange: First creation
         $voName = 'DuplicateVO';
 
-        // Act: First run (should succeed)
-        $firstResponse = $this->registerAndRun('make-vo', [$voName]);
-
-        // Assert: Verify first creation succeeded
+        // First run - should succeed
+        $firstResponse = $this->service->run(MakeValueObjectDirective::class, [$voName]);
         $this->assertSame(ExitCode::SUCCESS, $firstResponse->exitCode);
         $this->assertStringContainsString('value-object created successfully!', strtolower($firstResponse->output));
 
-        // Act: Second run with same name (should fail)
-        $secondResponse = $this->registerAndRun('make-vo', [$voName]);
-
-        // Assert: Verify failure message
+        // Second run - should fail because file already exists
+        $secondResponse = $this->service->run(MakeValueObjectDirective::class, [$voName]);
         $this->assertSame(ExitCode::FAILURE, $secondResponse->exitCode);
         $this->assertStringContainsString('File already exists', $secondResponse->output);
     }

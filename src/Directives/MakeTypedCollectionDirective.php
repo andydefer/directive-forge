@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
+use AndyDefer\Directive\Contexts\DirectiveContext;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
+use AndyDefer\Directive\Services\FileCreatorService;
 use AndyDefer\DirectiveForge\Generators\TypedCollectionGenerator;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class MakeTypedCollectionDirective extends BaseDirective
 {
-    public function __construct(DirectiveInteractionService $interaction)
-    {
-        parent::__construct($interaction);
-        $this->generator = new TypedCollectionGenerator($interaction);
+    public function __construct(
+        DirectiveContext $context,
+        DirectiveInteractionService $interaction,
+        FileCreatorService $fileCreator
+    ) {
+        parent::__construct($context, $interaction, $fileCreator, new TypedCollectionGenerator($interaction, $fileCreator));
     }
 
     public function getSignature(): string
@@ -30,7 +34,8 @@ final class MakeTypedCollectionDirective extends BaseDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-collection', 'make-collection');
+        $aliases->add('create-collection');
+        $aliases->add('make-collection');
 
         return $aliases;
     }

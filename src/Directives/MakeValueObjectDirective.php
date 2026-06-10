@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
+use AndyDefer\Directive\Contexts\DirectiveContext;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
+use AndyDefer\Directive\Services\FileCreatorService;
 use AndyDefer\DirectiveForge\Generators\ValueObjectGenerator;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
@@ -16,10 +18,12 @@ use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
  */
 final class MakeValueObjectDirective extends BaseDirective
 {
-    public function __construct(DirectiveInteractionService $interaction)
-    {
-        parent::__construct($interaction);
-        $this->generator = new ValueObjectGenerator($interaction);
+    public function __construct(
+        DirectiveContext $context,
+        DirectiveInteractionService $interaction,
+        FileCreatorService $fileCreator
+    ) {
+        parent::__construct($context, $interaction, $fileCreator, new ValueObjectGenerator($interaction, $fileCreator));
     }
 
     public function getSignature(): string
@@ -35,7 +39,8 @@ final class MakeValueObjectDirective extends BaseDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-vo', 'make-value-object');
+        $aliases->add('create-vo');
+        $aliases->add('make-value-object');
 
         return $aliases;
     }

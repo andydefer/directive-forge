@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
+use AndyDefer\Directive\Contexts\DirectiveContext;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
+use AndyDefer\Directive\Services\FileCreatorService;
 use AndyDefer\DirectiveForge\Generators\ActionGenerator;
 use AndyDefer\DirectiveForge\Generators\DataGenerator;
 use AndyDefer\DirectiveForge\Generators\RecordGenerator;
@@ -14,10 +16,12 @@ use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class MakeActionDirective extends BaseDirective
 {
-    public function __construct(DirectiveInteractionService $interaction)
-    {
-        parent::__construct($interaction);
-        $this->generator = new ActionGenerator($interaction);
+    public function __construct(
+        DirectiveContext $context,
+        DirectiveInteractionService $interaction,
+        FileCreatorService $fileCreator
+    ) {
+        parent::__construct($context, $interaction, $fileCreator, new ActionGenerator($interaction, $fileCreator));
     }
 
     public function getSignature(): string
@@ -32,8 +36,9 @@ final class MakeActionDirective extends BaseDirective
 
     public function getAliases(): StringTypedCollection
     {
-        $aliases = new StringTypedCollection();
-        $aliases->add('create-action', 'make-act');
+        $aliases = new StringTypedCollection;
+        $aliases->add('create-action');
+        $aliases->add('make-act');
 
         return $aliases;
     }
@@ -44,6 +49,7 @@ final class MakeActionDirective extends BaseDirective
 
         if ($name === null) {
             $this->error('Action name is required');
+
             return ExitCode::INVALID_ARGUMENT;
         }
 
@@ -68,14 +74,14 @@ final class MakeActionDirective extends BaseDirective
     /**
      * Crée la Request, le Record et la Data associés à l'Action.
      *
-     * @param string $actionName Le nom de l'Action (ex: 'user/show')
+     * @param  string  $actionName  Le nom de l'Action (ex: 'user/show')
      */
     private function createRequestRecordAndData(string $actionName): void
     {
         // Extraire le chemin et le nom de base
         $segments = explode('/', $actionName);
         $rawClassName = array_pop($segments);
-        $subPath = !empty($segments) ? implode('/', $segments) : '';
+        $subPath = ! empty($segments) ? implode('/', $segments) : '';
 
         // Normaliser le nom de base (kebab-case -> PascalCase) en utilisant la méthode parente
         $normalizedBaseName = $this->toPascalCase($rawClassName);
@@ -86,14 +92,14 @@ final class MakeActionDirective extends BaseDirective
         $baseClassName = str_replace('Record', '', $baseClassName);
         $baseClassName = str_replace('Data', '', $baseClassName);
 
-        $requestClassName = $baseClassName . 'Request';
-        $recordClassName = $baseClassName . 'Record';
-        $dataClassName = $baseClassName . 'Data';
+        $requestClassName = $baseClassName.'Request';
+        $recordClassName = $baseClassName.'Record';
+        $dataClassName = $baseClassName.'Data';
 
         // Chemins complets
-        $requestPath = !empty($subPath) ? $subPath . '/' . $requestClassName : $requestClassName;
-        $recordPath = !empty($subPath) ? $subPath . '/' . $recordClassName : $recordClassName;
-        $dataPath = !empty($subPath) ? $subPath . '/' . $dataClassName : $dataClassName;
+        $requestPath = ! empty($subPath) ? $subPath.'/'.$requestClassName : $requestClassName;
+        $recordPath = ! empty($subPath) ? $subPath.'/'.$recordClassName : $recordClassName;
+        $dataPath = ! empty($subPath) ? $subPath.'/'.$dataClassName : $dataClassName;
 
         // Créer la Request via son générateur
         $this->createRequest($requestPath);
@@ -105,47 +111,47 @@ final class MakeActionDirective extends BaseDirective
         $this->createData($dataPath);
 
         // Afficher un message récapitulatif
-        $this->interaction->line('');
-        $this->interaction->info('🎉 Fully created:');
-        $this->interaction->line("   Action:  {$actionName}");
-        $this->interaction->line("   Request: {$requestPath}");
-        $this->interaction->line("   Record:  {$recordPath}");
-        $this->interaction->line("   Data:    {$dataPath}");
+        $this->newLine();
+        $this->info('🎉 Fully created:');
+        $this->line("   Action:  {$actionName}");
+        $this->line("   Request: {$requestPath}");
+        $this->line("   Record:  {$recordPath}");
+        $this->line("   Data:    {$dataPath}");
     }
 
     /**
      * Crée une Request.
      *
-     * @param string $path Le chemin de la Request
+     * @param  string  $path  Le chemin de la Request
      */
     private function createRequest(string $path): void
     {
-        $requestGenerator = new RequestGenerator($this->interaction);
+        $requestGenerator = new RequestGenerator($this->interaction, $this->fileCreator);
         $pathInfo = $this->extractPathInfo($path);
-        $requestGenerator->generate($pathInfo);
+        $requestGenerator->generate($pathInfo, null, null);
     }
 
     /**
      * Crée un Record.
      *
-     * @param string $path Le chemin du Record
+     * @param  string  $path  Le chemin du Record
      */
     private function createRecord(string $path): void
     {
-        $recordGenerator = new RecordGenerator($this->interaction);
+        $recordGenerator = new RecordGenerator($this->interaction, $this->fileCreator);
         $pathInfo = $this->extractPathInfo($path);
-        $recordGenerator->generate($pathInfo);
+        $recordGenerator->generate($pathInfo, null, null);
     }
 
     /**
      * Crée une Data.
      *
-     * @param string $path Le chemin de la Data
+     * @param  string  $path  Le chemin de la Data
      */
     private function createData(string $path): void
     {
-        $dataGenerator = new DataGenerator($this->interaction);
+        $dataGenerator = new DataGenerator($this->interaction, $this->fileCreator);
         $pathInfo = $this->extractPathInfo($path);
-        $dataGenerator->generate($pathInfo);
+        $dataGenerator->generate($pathInfo, null, null);
     }
 }

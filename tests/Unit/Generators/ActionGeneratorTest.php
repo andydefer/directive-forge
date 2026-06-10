@@ -18,6 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 final class ActionGeneratorTest extends UnitTestCase
 {
     private ActionGenerator $generator;
+
     private DirectiveInteractionService&MockObject $interaction;
 
     protected function setUp(): void
@@ -30,8 +31,8 @@ final class ActionGeneratorTest extends UnitTestCase
 
     private function createPathInfo(string $className, string $subPath = '', array $segments = []): PathInfo
     {
-        $segmentsCollection = new ScalarTypedCollection();
-        if (!empty($segments)) {
+        $segmentsCollection = new ScalarTypedCollection;
+        if (! empty($segments)) {
             $segmentsCollection->add(...$segments);
         }
 

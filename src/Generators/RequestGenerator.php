@@ -49,7 +49,7 @@ final class RequestGenerator extends AbstractGenerator
      *
      * Example: 'StoreUserRequest' -> 'StoreUserRecord'
      *
-     * @param string $className The request class name
+     * @param  string  $className  The request class name
      * @return string The corresponding record class name
      */
     private function generateRecordClassName(string $className): string
@@ -58,6 +58,6 @@ final class RequestGenerator extends AbstractGenerator
         $baseName = str_replace('Request', '', $className);
 
         // Add 'Record' suffix
-        return $baseName . 'Record';
+        return $baseName.'Record';
     }
 }

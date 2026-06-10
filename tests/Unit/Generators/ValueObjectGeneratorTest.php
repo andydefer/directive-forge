@@ -16,6 +16,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 final class ValueObjectGeneratorTest extends UnitTestCase
 {
     private ValueObjectGenerator $generator;
+
     private DirectiveInteractionService&MockObject $interaction;
 
     protected function setUp(): void
@@ -29,7 +30,7 @@ final class ValueObjectGeneratorTest extends UnitTestCase
     private function createPathInfo(string $className, string $subPath = '', array $segments = []): PathInfo
     {
         $segmentsCollection = new ScalarTypedCollection;
-        if (!empty($segments)) {
+        if (! empty($segments)) {
             $segmentsCollection->add(...$segments);
         }
 

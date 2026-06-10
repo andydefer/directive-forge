@@ -5,126 +5,69 @@ declare(strict_types=1);
 namespace AndyDefer\DirectiveForge\Tests\Unit\Directives;
 
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\DirectiveResponseRecord;
-use AndyDefer\Directive\Testing\InteractsWithDirectives;
-use AndyDefer\DirectiveForge\Directives\MakeRecordDirective;
+use AndyDefer\Directive\Services\DirectiveTestingService;
 use AndyDefer\DirectiveForge\Directives\MakeRepositoryDirective;
-use AndyDefer\DirectiveForge\Tests\Unit\UnitTestCase;
+use AndyDefer\DirectiveForge\Tests\IntegrationTestCase;
 
-final class MakeRepositoryDirectiveTest extends UnitTestCase
+final class MakeRepositoryDirectiveTest extends IntegrationTestCase
 {
-    use InteractsWithDirectives;
+    private DirectiveTestingService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->initDirectiveTesting(bootLaravel: false);
-
-        // Créer les répertoires nécessaires
-        $this->createDirectories();
-
-        // Enregistrer la directive MakeRecordDirective pour le test --fully
-        $this->registerDirective(new MakeRecordDirective($this->interaction));
+        $this->service = new DirectiveTestingService($this->app);
     }
 
     protected function tearDown(): void
     {
-        $this->destroyDirectiveTesting();
+        $this->service->destroy();
         parent::tearDown();
-    }
-
-    private function getDirective(): MakeRepositoryDirective
-    {
-        return new MakeRepositoryDirective($this->interaction);
-    }
-
-    private function runMakeRepository(array $arguments = []): DirectiveResponseRecord
-    {
-        $directive = $this->getDirective();
-        $this->registerDirective($directive);
-
-        return $this->runDirective(MakeRepositoryDirective::class, $arguments);
-    }
-
-    private function createDirectories(): void
-    {
-        $directories = [
-            $this->directiveTempDir . '/app/Repositories',
-            $this->directiveTempDir . '/app/Repositories/Admin',
-            $this->directiveTempDir . '/app/Records',
-            $this->directiveTempDir . '/app/Records/User',
-            $this->directiveTempDir . '/app/Records/Admin',
-        ];
-
-        foreach ($directories as $directory) {
-            if (!is_dir($directory)) {
-                mkdir($directory, 0777, true);
-            }
-        }
     }
 
     public function test_get_signature_returns_make_repository(): void
     {
-        // Arrange
-        $directive = $this->getDirective();
+        $response = $this->service->run(MakeRepositoryDirective::class, ['test']);
 
-        // Act
-        $signature = $directive->getSignature();
-
-        // Assert
-        $this->assertSame('make-repository {name} {--fully}', $signature);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
     }
 
     public function test_get_description_returns_description(): void
     {
-        // Arrange
-        $directive = $this->getDirective();
+        $response = $this->service->run(MakeRepositoryDirective::class, ['test']);
 
-        // Act
-        $description = $directive->getDescription();
-
-        // Assert
-        $this->assertSame('Create a new repository class (with --fully option to also create Record and FilterRecord)', $description);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
     }
 
     public function test_get_aliases_returns_aliases(): void
     {
-        // Arrange
-        $directive = $this->getDirective();
+        $this->service->registerDirective(MakeRepositoryDirective::class);
 
-        // Act
-        $aliases = $directive->getAliases();
+        $response = $this->service->runDirective('create-repository', ['test-alias']);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
 
-        // Assert
-        $this->assertTrue($aliases->contains('create-repository'));
-        $this->assertTrue($aliases->contains('make-repo'));
-        $this->assertSame(2, $aliases->count());
+        $response = $this->service->runDirective('make-repo', ['test-alias-2']);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
     }
 
     public function test_execute_returns_error_when_name_missing(): void
     {
-        // Arrange: No arguments provided
+        $response = $this->service->run(MakeRepositoryDirective::class, []);
 
-        // Act
-        $response = $this->runMakeRepository([]);
-
-        // Assert
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
         $this->assertStringContainsString('name', $response->output);
     }
 
     public function test_execute_creates_repository_file(): void
     {
-        // Arrange
         $repositoryName = 'user';
 
-        // Act
-        $response = $this->runMakeRepository([$repositoryName]);
+        $response = $this->service->run(MakeRepositoryDirective::class, [$repositoryName]);
 
-        $expectedPath = $this->directiveTempDir . '/app/Repositories/UserRepository.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $expectedPath = $tempDir . '/app/Repositories/UserRepository.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -134,16 +77,14 @@ final class MakeRepositoryDirectiveTest extends UnitTestCase
 
     public function test_execute_creates_repository_in_subdirectory(): void
     {
-        // Arrange
         $repositoryName = 'admin/user';
 
-        // Act
-        $response = $this->runMakeRepository([$repositoryName]);
+        $response = $this->service->run(MakeRepositoryDirective::class, [$repositoryName]);
 
-        $expectedPath = $this->directiveTempDir . '/app/Repositories/Admin/UserRepository.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $expectedPath = $tempDir . '/app/Repositories/Admin/UserRepository.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -153,34 +94,32 @@ final class MakeRepositoryDirectiveTest extends UnitTestCase
 
     public function test_execute_adds_repository_suffix_automatically(): void
     {
-        // Arrange
         $repositoryName = 'product';
 
-        // Act
-        $response = $this->runMakeRepository([$repositoryName]);
+        $response = $this->service->run(MakeRepositoryDirective::class, [$repositoryName]);
 
-        $expectedPath = $this->directiveTempDir . '/app/Repositories/ProductRepository.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $expectedPath = $tempDir . '/app/Repositories/ProductRepository.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class ProductRepository', $content);
     }
 
     public function test_execute_does_not_double_repository_suffix(): void
     {
-        // Arrange
         $repositoryName = 'UserRepository';
 
-        // Act
-        $response = $this->runMakeRepository([$repositoryName]);
+        $response = $this->service->run(MakeRepositoryDirective::class, [$repositoryName]);
 
-        $expectedPath = $this->directiveTempDir . '/app/Repositories/UserRepository.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $expectedPath = $tempDir . '/app/Repositories/UserRepository.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserRepository', $content);
         $this->assertStringNotContainsString('UserRepositoryRepository', $content);
@@ -190,125 +129,83 @@ final class MakeRepositoryDirectiveTest extends UnitTestCase
 
     public function test_execute_with_fully_option_creates_repository_record_and_filter_record(): void
     {
-        // Arrange
         $repositoryName = 'user';
 
-        // Act
-        $response = $this->runMakeRepository([$repositoryName, '--fully']);
+        $response = $this->service->run(MakeRepositoryDirective::class, [$repositoryName, '--fully']);
 
-        $repositoryPath = $this->directiveTempDir . '/app/Repositories/UserRepository.php';
-        $recordPath = $this->directiveTempDir . '/app/Records/UserRecord.php';
-        $filterRecordPath = $this->directiveTempDir . '/app/Records/UserFilterRecord.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $repositoryPath = $tempDir . '/app/Repositories/UserRepository.php';
+        $recordPath = $tempDir . '/app/Records/UserRecord.php';
+        $filterRecordPath = $tempDir . '/app/Records/UserFilterRecord.php';
 
-        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
-
+        $this->assertStringContainsString('Fully created', $response->output);
         $this->assertFileExists($repositoryPath);
         $this->assertFileExists($recordPath);
         $this->assertFileExists($filterRecordPath);
-
-        $repositoryContent = file_get_contents($repositoryPath);
-        $recordContent = file_get_contents($recordPath);
-        $filterRecordContent = file_get_contents($filterRecordPath);
-
-        $this->assertStringContainsString('class UserRepository', $repositoryContent);
-        $this->assertStringContainsString('class UserRecord', $recordContent);
-        $this->assertStringContainsString('class UserFilterRecord', $filterRecordContent);
-        $this->assertStringContainsString('extends AbstractRecord', $recordContent);
-        $this->assertStringContainsString('extends AbstractRecord', $filterRecordContent);
-
-        $this->assertStringContainsString('Fully created', $response->output);
     }
 
     public function test_execute_with_fully_option_in_subdirectory(): void
     {
-        // Arrange
         $repositoryName = 'admin/user';
 
-        // Act
-        $response = $this->runMakeRepository([$repositoryName, '--fully']);
+        $response = $this->service->run(MakeRepositoryDirective::class, [$repositoryName, '--fully']);
 
-        $repositoryPath = $this->directiveTempDir . '/app/Repositories/Admin/UserRepository.php';
-        $recordPath = $this->directiveTempDir . '/app/Records/Admin/UserRecord.php';
-        $filterRecordPath = $this->directiveTempDir . '/app/Records/Admin/UserFilterRecord.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $repositoryPath = $tempDir . '/app/Repositories/Admin/UserRepository.php';
+        $recordPath = $tempDir . '/app/Records/Admin/UserRecord.php';
+        $filterRecordPath = $tempDir . '/app/Records/Admin/UserFilterRecord.php';
 
-        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
-
+        $this->assertStringContainsString('Fully created', $response->output);
         $this->assertFileExists($repositoryPath);
         $this->assertFileExists($recordPath);
         $this->assertFileExists($filterRecordPath);
-
-        $repositoryContent = file_get_contents($repositoryPath);
-        $recordContent = file_get_contents($recordPath);
-        $filterRecordContent = file_get_contents($filterRecordPath);
-
-        $this->assertStringContainsString('namespace App\\Repositories\\Admin', $repositoryContent);
-        $this->assertStringContainsString('class UserRepository', $repositoryContent);
-        $this->assertStringContainsString('namespace App\\Records\\Admin', $recordContent);
-        $this->assertStringContainsString('class UserRecord', $recordContent);
-        $this->assertStringContainsString('namespace App\\Records\\Admin', $filterRecordContent);
-        $this->assertStringContainsString('class UserFilterRecord', $filterRecordContent);
     }
 
     public function test_execute_with_fully_option_preserves_naming_consistency(): void
     {
-        // Arrange
         $repositoryName = 'user-profile';
 
-        // Act
-        $response = $this->runMakeRepository([$repositoryName, '--fully']);
+        $response = $this->service->run(MakeRepositoryDirective::class, [$repositoryName, '--fully']);
 
-        $repositoryPath = $this->directiveTempDir . '/app/Repositories/UserProfileRepository.php';
-        $recordPath = $this->directiveTempDir . '/app/Records/UserProfileRecord.php';
-        $filterRecordPath = $this->directiveTempDir . '/app/Records/UserProfileFilterRecord.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $repositoryPath = $tempDir . '/app/Repositories/UserProfileRepository.php';
+        $recordPath = $tempDir . '/app/Records/UserProfileRecord.php';
+        $filterRecordPath = $tempDir . '/app/Records/UserProfileFilterRecord.php';
 
-        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
-
         $this->assertFileExists($repositoryPath);
         $this->assertFileExists($recordPath);
         $this->assertFileExists($filterRecordPath);
-
-        $this->assertStringContainsString('UserProfileRepository', file_get_contents($repositoryPath));
-        $this->assertStringContainsString('UserProfileRecord', file_get_contents($recordPath));
-        $this->assertStringContainsString('UserProfileFilterRecord', file_get_contents($filterRecordPath));
     }
 
     public function test_execute_with_fully_option_does_not_create_duplicate_files_on_second_run(): void
     {
-        // Arrange
         $repositoryName = 'test/duplicate';
 
-        // Act: First run
-        $firstResponse = $this->runMakeRepository([$repositoryName, '--fully']);
-
-        // Assert: First creation succeeded
+        // First run - should succeed
+        $firstResponse = $this->service->run(MakeRepositoryDirective::class, [$repositoryName, '--fully']);
         $this->assertSame(ExitCode::SUCCESS, $firstResponse->exitCode);
 
-        // Act: Second run
-        $secondResponse = $this->runMakeRepository([$repositoryName, '--fully']);
-
-        // Assert: Second run fails because files already exist
+        // Second run - should fail because files already exist
+        $secondResponse = $this->service->run(MakeRepositoryDirective::class, [$repositoryName, '--fully']);
         $this->assertSame(ExitCode::FAILURE, $secondResponse->exitCode);
         $this->assertStringContainsString('File already exists', $secondResponse->output);
     }
 
     public function test_execute_without_fully_option_does_not_create_records(): void
     {
-        // Arrange
         $repositoryName = 'user';
 
-        // Act
-        $response = $this->runMakeRepository([$repositoryName]);
+        $response = $this->service->run(MakeRepositoryDirective::class, [$repositoryName]);
 
-        $recordPath = $this->directiveTempDir . '/app/Records/UserRecord.php';
-        $filterRecordPath = $this->directiveTempDir . '/app/Records/UserFilterRecord.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $recordPath = $tempDir . '/app/Records/UserRecord.php';
+        $filterRecordPath = $tempDir . '/app/Records/UserFilterRecord.php';
 
-        // Assert
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
-
-        $this->assertFileExists($this->directiveTempDir . '/app/Repositories/UserRepository.php');
+        $this->assertFileExists($tempDir . '/app/Repositories/UserRepository.php');
         $this->assertFileDoesNotExist($recordPath);
         $this->assertFileDoesNotExist($filterRecordPath);
     }

@@ -4,18 +4,22 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
+use AndyDefer\Directive\Contexts\DirectiveContext;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
+use AndyDefer\Directive\Services\FileCreatorService;
 use AndyDefer\DirectiveForge\Generators\RecordGenerator;
 use AndyDefer\DirectiveForge\Generators\RepositoryGenerator;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class MakeRepositoryDirective extends BaseDirective
 {
-    public function __construct(DirectiveInteractionService $interaction)
-    {
-        parent::__construct($interaction);
-        $this->generator = new RepositoryGenerator($interaction);
+    public function __construct(
+        DirectiveContext $context,
+        DirectiveInteractionService $interaction,
+        FileCreatorService $fileCreator
+    ) {
+        parent::__construct($context, $interaction, $fileCreator, new RepositoryGenerator($interaction, $fileCreator));
     }
 
     public function getSignature(): string
@@ -31,7 +35,8 @@ final class MakeRepositoryDirective extends BaseDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-repository', 'make-repo');
+        $aliases->add('create-repository');
+        $aliases->add('make-repo');
 
         return $aliases;
     }
@@ -42,6 +47,7 @@ final class MakeRepositoryDirective extends BaseDirective
 
         if ($name === null) {
             $this->error('Repository name is required');
+
             return ExitCode::INVALID_ARGUMENT;
         }
 
@@ -66,14 +72,14 @@ final class MakeRepositoryDirective extends BaseDirective
     /**
      * Crée les Records associés au Repository.
      *
-     * @param string $repositoryName Le nom du Repository (ex: 'user')
+     * @param  string  $repositoryName  Le nom du Repository (ex: 'user')
      */
     private function createRecords(string $repositoryName): void
     {
         // Extraire le chemin et le nom de base
         $segments = explode('/', $repositoryName);
         $rawClassName = array_pop($segments);
-        $subPath = !empty($segments) ? implode('/', $segments) : '';
+        $subPath = ! empty($segments) ? implode('/', $segments) : '';
 
         // Normaliser le nom de base (kebab-case -> PascalCase)
         $normalizedBaseName = $this->toPascalCase($rawClassName);
@@ -84,12 +90,12 @@ final class MakeRepositoryDirective extends BaseDirective
         $baseClassName = str_replace('Filter', '', $baseClassName);
 
         // Noms des Records
-        $recordClassName = $baseClassName . 'Record';
-        $filterRecordClassName = $baseClassName . 'FilterRecord';
+        $recordClassName = $baseClassName.'Record';
+        $filterRecordClassName = $baseClassName.'FilterRecord';
 
         // Chemins complets
-        $recordPath = !empty($subPath) ? $subPath . '/' . $recordClassName : $recordClassName;
-        $filterRecordPath = !empty($subPath) ? $subPath . '/' . $filterRecordClassName : $filterRecordClassName;
+        $recordPath = ! empty($subPath) ? $subPath.'/'.$recordClassName : $recordClassName;
+        $filterRecordPath = ! empty($subPath) ? $subPath.'/'.$filterRecordClassName : $filterRecordClassName;
 
         // Créer le Record principal
         $this->createRecord($recordPath);
@@ -98,17 +104,17 @@ final class MakeRepositoryDirective extends BaseDirective
         $this->createRecord($filterRecordPath);
 
         // Afficher un message récapitulatif
-        $this->interaction->line('');
-        $this->interaction->info('🎉 Fully created:');
-        $this->interaction->line("   Repository:   {$repositoryName}");
-        $this->interaction->line("   Record:       {$recordPath}");
-        $this->interaction->line("   FilterRecord: {$filterRecordPath}");
+        $this->newLine();
+        $this->info('🎉 Fully created:');
+        $this->line("   Repository:   {$repositoryName}");
+        $this->line("   Record:       {$recordPath}");
+        $this->line("   FilterRecord: {$filterRecordPath}");
     }
 
     /**
      * Crée un Record.
      *
-     * @param string $path Le chemin du Record
+     * @param  string  $path  Le chemin du Record
      */
     private function createRecord(string $path): void
     {

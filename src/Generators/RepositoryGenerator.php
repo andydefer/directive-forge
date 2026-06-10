@@ -41,8 +41,8 @@ final class RepositoryGenerator extends AbstractGenerator
         // Donc on garde le baseName tel quel, il est déjà en PascalCase
 
         // Pour les records, on utilise le baseName normalisé
-        $recordClassName = $baseName . 'Record';
-        $filterRecordClassName = $baseName . 'FilterRecord';
+        $recordClassName = $baseName.'Record';
+        $filterRecordClassName = $baseName.'FilterRecord';
 
         $collection = new ReplacementCollection;
         $collection

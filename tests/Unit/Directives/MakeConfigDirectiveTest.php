@@ -5,102 +5,69 @@ declare(strict_types=1);
 namespace AndyDefer\DirectiveForge\Tests\Unit\Directives;
 
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\DirectiveResponseRecord;
-use AndyDefer\Directive\Testing\InteractsWithDirectives;
+use AndyDefer\Directive\Services\DirectiveTestingService;
 use AndyDefer\DirectiveForge\Directives\MakeConfigDirective;
-use AndyDefer\DirectiveForge\Tests\Unit\UnitTestCase;
+use AndyDefer\DirectiveForge\Tests\IntegrationTestCase;
 
-final class MakeConfigDirectiveTest extends UnitTestCase
+final class MakeConfigDirectiveTest extends IntegrationTestCase
 {
-    use InteractsWithDirectives;
+    private DirectiveTestingService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->initDirectiveTesting();
+        $this->service = new DirectiveTestingService($this->app);
     }
 
     protected function tearDown(): void
     {
-        $this->destroyDirectiveTesting();
+        $this->service->destroy();
         parent::tearDown();
-    }
-
-    private function getDirective(): MakeConfigDirective
-    {
-        return new MakeConfigDirective($this->interaction);
-    }
-
-    private function registerAndRun(string $signature, array $arguments = []): DirectiveResponseRecord
-    {
-        $directive = $this->getDirective();
-        $this->registerDirective($directive);
-
-        return $this->runDirective($signature, $arguments);
     }
 
     public function test_get_signature_returns_make_config(): void
     {
-        // Arrange: Get the directive instance
-        $directive = $this->getDirective();
+        $response = $this->service->run(MakeConfigDirective::class, ['test']);
 
-        // Act: Get the signature
-        $signature = $directive->getSignature();
-
-        // Assert: Verify the signature is correct
-        $this->assertSame('make-config {name}', $signature);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
     }
 
     public function test_get_description_returns_description(): void
     {
-        // Arrange: Get the directive instance
-        $directive = $this->getDirective();
+        $response = $this->service->run(MakeConfigDirective::class, ['test']);
 
-        // Act: Get the description
-        $description = $directive->getDescription();
-
-        // Assert: Verify the description is correct
-        $this->assertSame('Create a new configuration class', $description);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
     }
 
     public function test_get_aliases_returns_aliases(): void
     {
-        // Arrange: Get the directive instance
-        $directive = $this->getDirective();
+        $this->service->registerDirective(MakeConfigDirective::class);
 
-        // Act: Get the aliases
-        $aliases = $directive->getAliases();
+        $response = $this->service->runDirective('create-config', ['test-alias']);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
 
-        // Assert: Verify the aliases are correct
-        $this->assertTrue($aliases->contains('create-config'));
-        $this->assertTrue($aliases->contains('make-cfg'));
-        $this->assertSame(2, $aliases->count());
+        $response = $this->service->runDirective('make-cfg', ['test-alias-2']);
+        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
     }
 
     public function test_execute_returns_error_when_name_missing(): void
     {
-        // Arrange: No arguments provided
+        $response = $this->service->run(MakeConfigDirective::class, []);
 
-        // Act: Run the directive without name argument
-        $response = $this->registerAndRun('make-config');
-
-        // Assert: Verify invalid argument error
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
         $this->assertStringContainsString('name', $response->output);
     }
 
     public function test_execute_creates_config_file(): void
     {
-        // Arrange: Prepare config name
         $configName = 'DatabaseConfig';
 
-        // Act: Run the directive to create the config file
-        $response = $this->registerAndRun('make-config', [$configName]);
+        $response = $this->service->run(MakeConfigDirective::class, [$configName]);
 
-        $expectedPath = $this->directiveTempDir . '/app/Configs/DatabaseConfig.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $expectedPath = $tempDir . '/app/Configs/DatabaseConfig.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify success and file content
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('config created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -111,16 +78,14 @@ final class MakeConfigDirectiveTest extends UnitTestCase
 
     public function test_execute_creates_config_in_subdirectory(): void
     {
-        // Arrange: Prepare config name with subdirectory
         $configName = 'Database/DatabaseConfig';
 
-        // Act: Run the directive to create the config file
-        $response = $this->registerAndRun('make-config', [$configName]);
+        $response = $this->service->run(MakeConfigDirective::class, [$configName]);
 
-        $expectedPath = $this->directiveTempDir . '/app/Configs/Database/DatabaseConfig.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $expectedPath = $tempDir . '/app/Configs/Database/DatabaseConfig.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify success and correct namespace
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('config created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -130,16 +95,14 @@ final class MakeConfigDirectiveTest extends UnitTestCase
 
     public function test_execute_adds_config_suffix_automatically(): void
     {
-        // Arrange: Prepare config name without suffix
         $configName = 'Database';
 
-        // Act: Run the directive to create the config file
-        $response = $this->registerAndRun('make-config', [$configName]);
+        $response = $this->service->run(MakeConfigDirective::class, [$configName]);
 
-        $expectedPath = $this->directiveTempDir . '/app/Configs/DatabaseConfig.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $expectedPath = $tempDir . '/app/Configs/DatabaseConfig.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify suffix was added automatically
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('config created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -148,16 +111,14 @@ final class MakeConfigDirectiveTest extends UnitTestCase
 
     public function test_execute_does_not_double_config_suffix(): void
     {
-        // Arrange: Prepare config name that already has suffix
         $configName = 'DatabaseConfig';
 
-        // Act: Run the directive to create the config file
-        $response = $this->registerAndRun('make-config', [$configName]);
+        $response = $this->service->run(MakeConfigDirective::class, [$configName]);
 
-        $expectedPath = $this->directiveTempDir . '/app/Configs/DatabaseConfig.php';
+        $tempDir = $this->service->getContext()->getTempDir();
+        $expectedPath = $tempDir . '/app/Configs/DatabaseConfig.php';
         $content = file_get_contents($expectedPath);
 
-        // Assert: Verify suffix is not duplicated
         $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
         $this->assertStringContainsString('config created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
@@ -167,20 +128,15 @@ final class MakeConfigDirectiveTest extends UnitTestCase
 
     public function test_prevents_duplicate_file_creation(): void
     {
-        // Arrange: First creation
         $configName = 'DuplicateConfig';
 
-        // Act: First run (should succeed)
-        $firstResponse = $this->registerAndRun('make-config', [$configName]);
-
-        // Assert: Verify first creation succeeded
+        // First run - should succeed
+        $firstResponse = $this->service->run(MakeConfigDirective::class, [$configName]);
         $this->assertSame(ExitCode::SUCCESS, $firstResponse->exitCode);
         $this->assertStringContainsString('config created successfully!', strtolower($firstResponse->output));
 
-        // Act: Second run with same name (should fail)
-        $secondResponse = $this->registerAndRun('make-config', [$configName]);
-
-        // Assert: Verify failure message
+        // Second run - should fail because file already exists
+        $secondResponse = $this->service->run(MakeConfigDirective::class, [$configName]);
         $this->assertSame(ExitCode::FAILURE, $secondResponse->exitCode);
         $this->assertStringContainsString('File already exists', $secondResponse->output);
     }

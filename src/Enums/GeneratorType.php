@@ -40,13 +40,13 @@ enum GeneratorType: string
             'suffix' => $this->getSuffix(),
         ];
 
-        $stubBasePath = dirname(__DIR__, 2) . '/stubs/';
+        $stubBasePath = dirname(__DIR__, 2).'/stubs/';
 
         $specificConfig = match ($this) {
             self::DIRECTIVE => [
                 'basePath' => '/app/Directives/',
                 'baseNamespace' => 'App\\Directives',
-                'stubPath' => $stubBasePath . 'directive.stub',
+                'stubPath' => $stubBasePath.'directive.stub',
                 'extraReplacements' => new ReplacementCollection([
                     new ReplacementRecord('{{date}}', date('Y-m-d H:i:s')),
                 ]),
@@ -54,53 +54,53 @@ enum GeneratorType: string
             self::ACTION => [
                 'basePath' => '/app/Actions/',
                 'baseNamespace' => 'App\\Actions',
-                'stubPath' => $stubBasePath . 'action.stub',
+                'stubPath' => $stubBasePath.'action.stub',
             ],
             self::TASK => [
                 'basePath' => '/app/Tasks/',
                 'baseNamespace' => 'App\\Tasks',
-                'stubPath' => $stubBasePath . 'task.stub',
+                'stubPath' => $stubBasePath.'task.stub',
             ],
             self::REPOSITORY => [
                 'basePath' => '/app/Repositories/',
                 'baseNamespace' => 'App\\Repositories',
-                'stubPath' => $stubBasePath . 'repository.stub',
+                'stubPath' => $stubBasePath.'repository.stub',
             ],
             self::RECORD => [
                 'basePath' => '/app/Records/',
                 'baseNamespace' => 'App\\Records',
-                'stubPath' => $stubBasePath . 'record.stub',
+                'stubPath' => $stubBasePath.'record.stub',
             ],
             self::TYPED_COLLECTION => [
                 'basePath' => '/app/Collections/',
                 'baseNamespace' => 'App\\Collections',
-                'stubPath' => $stubBasePath . 'typed-collection.stub',
+                'stubPath' => $stubBasePath.'typed-collection.stub',
                 'requiresType' => true,
             ],
             self::SERVICE => [
                 'basePath' => '/app/Services/',
                 'baseNamespace' => 'App\\Services',
-                'stubPath' => $stubBasePath . 'service.stub',
+                'stubPath' => $stubBasePath.'service.stub',
             ],
             self::REQUEST => [
                 'basePath' => '/app/Http/Requests/',
                 'baseNamespace' => 'App\\Http\\Requests',
-                'stubPath' => $stubBasePath . 'request.stub',
+                'stubPath' => $stubBasePath.'request.stub',
             ],
             self::VALUE_OBJECT => [
                 'basePath' => '/app/ValueObjects/',
                 'baseNamespace' => 'App\\ValueObjects',
-                'stubPath' => $stubBasePath . 'value-object.stub',
+                'stubPath' => $stubBasePath.'value-object.stub',
             ],
             self::CONFIG => [
                 'basePath' => '/app/Configs/',
                 'baseNamespace' => 'App\\Configs',
-                'stubPath' => $stubBasePath . 'config.stub',
+                'stubPath' => $stubBasePath.'config.stub',
             ],
             self::DATA => [
                 'basePath' => '/app/Data/',
                 'baseNamespace' => 'App\\Data',
-                'stubPath' => $stubBasePath . 'data.stub',
+                'stubPath' => $stubBasePath.'data.stub',
             ],
         };
 

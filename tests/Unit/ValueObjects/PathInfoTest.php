@@ -84,7 +84,7 @@ final class PathInfoTest extends UnitTestCase
         // Arrange: Create path info without subpath
         $pathInfo = $this->createPathInfo('UserListDirective', '', []);
         $basePath = '/app/Directives/';
-        $expected = getcwd() . '/app/Directives/UserListDirective.php';
+        $expected = getcwd().'/app/Directives/UserListDirective.php';
 
         // Act: Get file path
         $filePath = $pathInfo->getFilePath($basePath);
@@ -98,7 +98,7 @@ final class PathInfoTest extends UnitTestCase
         // Arrange: Create path info with subpath
         $pathInfo = $this->createPathInfo('UserListDirective', 'Admin', ['Admin']);
         $basePath = '/app/Directives/';
-        $expected = getcwd() . '/app/Directives/Admin/UserListDirective.php';
+        $expected = getcwd().'/app/Directives/Admin/UserListDirective.php';
 
         // Act: Get file path
         $filePath = $pathInfo->getFilePath($basePath);
@@ -112,7 +112,7 @@ final class PathInfoTest extends UnitTestCase
         // Arrange: Create path info with nested subpath
         $pathInfo = $this->createPathInfo('ShowAction', 'Admin\\User\\Profile', ['Admin', 'User', 'Profile']);
         $basePath = '/app/Actions/';
-        $expected = getcwd() . '/app/Actions/Admin/User/Profile/ShowAction.php';
+        $expected = getcwd().'/app/Actions/Admin/User/Profile/ShowAction.php';
 
         // Act: Get file path
         $filePath = $pathInfo->getFilePath($basePath);
@@ -126,7 +126,7 @@ final class PathInfoTest extends UnitTestCase
         // Arrange: Create path info with backslashes in subpath
         $pathInfo = $this->createPathInfo('TestDirective', 'Admin\\User', ['Admin', 'User']);
         $basePath = '/app/Directives/';
-        $expected = getcwd() . '/app/Directives/Admin/User/TestDirective.php';
+        $expected = getcwd().'/app/Directives/Admin/User/TestDirective.php';
 
         // Act: Get file path
         $filePath = $pathInfo->getFilePath($basePath);
@@ -141,8 +141,8 @@ final class PathInfoTest extends UnitTestCase
         // Arrange: Create path info
         $pathInfo = $this->createPathInfo('UserListDirective', 'Admin', ['Admin']);
 
-        $expected1 = getcwd() . '/app/Commands/Admin/UserListDirective.php';
-        $expected2 = getcwd() . '/app/Handlers/Admin/UserListDirective.php';
+        $expected1 = getcwd().'/app/Commands/Admin/UserListDirective.php';
+        $expected2 = getcwd().'/app/Handlers/Admin/UserListDirective.php';
 
         // Act & Assert: Test different base paths
         $this->assertSame($expected1, $pathInfo->getFilePath('/app/Commands/'));

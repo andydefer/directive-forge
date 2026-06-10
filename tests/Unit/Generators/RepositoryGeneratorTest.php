@@ -50,6 +50,7 @@ final class RepositoryGeneratorTest extends UnitTestCase
     {
         $string = str_replace(['-', '_'], ' ', $string);
         $string = ucwords($string);
+
         return str_replace(' ', '', $string);
     }
 

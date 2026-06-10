@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace AndyDefer\DirectiveForge\Directives;
 
 use AndyDefer\Directive\AbstractDirective;
+use AndyDefer\Directive\Collections\ReplacementCollection;
+use AndyDefer\Directive\Contexts\DirectiveContext;
+use AndyDefer\Directive\Contexts\FileCreationContext;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
-use AndyDefer\Directive\Traits\FileCreator;
+use AndyDefer\Directive\Services\FileCreatorService;
 use AndyDefer\DirectiveForge\Contracts\GeneratorInterface;
 use AndyDefer\DirectiveForge\ValueObjects\PathInfo;
 use AndyDefer\DomainStructures\Collections\Utility\ScalarTypedCollection;
@@ -17,17 +20,38 @@ use AndyDefer\DomainStructures\Collections\Utility\ScalarTypedCollection;
  */
 abstract class BaseDirective extends AbstractDirective
 {
-    use FileCreator;
+    /**
+     * The file creator service instance.
+     */
+    protected FileCreatorService $fileCreator;
 
     /**
      * The generator instance responsible for file creation.
      */
     protected GeneratorInterface $generator;
 
-    public function __construct(DirectiveInteractionService $interaction)
+    public function __construct(
+        DirectiveContext $context,
+        DirectiveInteractionService $interaction,
+        FileCreatorService $fileCreator,
+        GeneratorInterface $generator
+    ) {
+        parent::__construct($context, $interaction);
+        $this->fileCreator = $fileCreator;
+        $this->generator = $generator;
+    }
+
+    /**
+     * Determines whether Laravel should be bootstrapped before executing this directive.
+     *
+     * Forge directives need Laravel to access file system, configuration,
+     * and other Laravel-specific features.
+     *
+     * @return bool True if Laravel bootstrapping is required
+     */
+    public function shouldBootLaravel(): bool
     {
-        parent::__construct($interaction);
-        $this->initFileCreator();
+        return true;
     }
 
     /**
@@ -39,6 +63,7 @@ abstract class BaseDirective extends AbstractDirective
 
         if ($name === null) {
             $this->error('Name is required');
+
             return ExitCode::INVALID_ARGUMENT;
         }
 
@@ -52,6 +77,75 @@ abstract class BaseDirective extends AbstractDirective
     }
 
     /**
+     * Creates a file from a stub template.
+     *
+     * @param  string  $stubPath  Path to the stub file
+     * @param  string  $destinationPath  Destination file path
+     * @param  ReplacementCollection  $replacements  Placeholder replacements
+     * @param  FileCreationContext  $context  Creation context
+     * @return bool True on success, false on failure
+     */
+    protected function createFile(
+        string $stubPath,
+        string $destinationPath,
+        ReplacementCollection $replacements,
+        FileCreationContext $context
+    ): bool {
+        $result = $this->fileCreator->createFile(
+            $stubPath,
+            $destinationPath,
+            $replacements,
+            $context
+        );
+
+        if (! $result->success) {
+            $this->error($result->message);
+
+            return false;
+        }
+
+        $this->info($result->message);
+
+        return true;
+    }
+
+    /**
+     * Creates a file from a stub template using a name to build the destination path.
+     *
+     * @param  string  $stubPath  Path to the stub file
+     * @param  string  $name  Name used to build the destination path
+     * @param  string  $baseDirectory  Base directory for the file
+     * @param  ReplacementCollection  $replacements  Placeholder replacements
+     * @param  FileCreationContext  $context  Creation context
+     * @return bool True on success, false on failure
+     */
+    protected function createFileFromName(
+        string $stubPath,
+        string $name,
+        string $baseDirectory,
+        ReplacementCollection $replacements,
+        FileCreationContext $context
+    ): bool {
+        $result = $this->fileCreator->createFileFromName(
+            $stubPath,
+            $name,
+            $baseDirectory,
+            $replacements,
+            $context
+        );
+
+        if (! $result->success) {
+            $this->error($result->message);
+
+            return false;
+        }
+
+        $this->info($result->message);
+
+        return true;
+    }
+
+    /**
      * Extracts path information from a directive name.
      *
      * Converts a path like 'admin/user/create-user' into:
@@ -59,7 +153,7 @@ abstract class BaseDirective extends AbstractDirective
      * - subPath: 'Admin\\User' (or empty string)
      * - segments: ['admin', 'user'] as ScalarTypedCollection
      *
-     * @param string $name The input name (may contain slashes for subdirectories)
+     * @param  string  $name  The input name (may contain slashes for subdirectories)
      * @return PathInfo The extracted path information as a Value Object
      */
     protected function extractPathInfo(string $name): PathInfo
@@ -70,7 +164,7 @@ abstract class BaseDirective extends AbstractDirective
 
         // Normaliser chaque segment individuellement avec toPascalCase
         $normalizedSegments = array_map([$this, 'toPascalCase'], $segments);
-        $subPath = !empty($normalizedSegments) ? implode('\\', $normalizedSegments) : '';
+        $subPath = ! empty($normalizedSegments) ? implode('\\', $normalizedSegments) : '';
 
         // Convert segments array to ScalarTypedCollection (garder les originaux)
         $segmentsCollection = new ScalarTypedCollection;
@@ -88,7 +182,7 @@ abstract class BaseDirective extends AbstractDirective
      *
      * Handles kebab-case, snake_case, and mixed case inputs.
      *
-     * @param string $string The input string to convert
+     * @param  string  $string  The input string to convert
      * @return string The PascalCase version of the input
      *
      * @example
@@ -101,6 +195,22 @@ abstract class BaseDirective extends AbstractDirective
     {
         $string = str_replace(['-', '_'], ' ', $string);
         $string = ucwords($string);
+
         return str_replace(' ', '', $string);
+    }
+
+    /**
+     * Converts a string to kebab-case.
+     *
+     * @param  string  $string  The input string in PascalCase
+     * @return string The kebab-case version
+     *
+     * @example
+     * toKebabCase('UserProfile')     // 'user-profile'
+     * toKebabCase('SendWelcomeEmail') // 'send-welcome-email'
+     */
+    protected function toKebabCase(string $string): string
+    {
+        return strtolower(preg_replace('/(?<!^)([A-Z])/', '-$1', $string));
     }
 }

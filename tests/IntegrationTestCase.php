@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Tests;
 
-use AndyDefer\Directive\Testing\InteractsWithDirectives;
+use AndyDefer\Directive\DirectiveServiceProvider;
+use AndyDefer\DirectiveForge\DirectiveForgeServiceProvider;
+use Illuminate\Foundation\Application;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class IntegrationTestCase extends Orchestra
 {
-    use InteractsWithDirectives;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -18,13 +18,22 @@ abstract class IntegrationTestCase extends Orchestra
 
     protected function tearDown(): void
     {
-        $this->destroyDirectiveTesting();
         parent::tearDown();
     }
 
-    protected function getEnvironmentSetUp($app): void
+    protected function getEnvironmentSetUp($app): void {}
+
+    /**
+     * Get the package providers for the test.
+     *
+     * @param  Application  $app
+     * @return array<int, class-string>
+     */
+    protected function getPackageProviders($app): array
     {
-        $app['config']->set('app.env', 'testing');
-        $app['config']->set('directive.path', getcwd().'/app/Directives');
+        return [
+            DirectiveServiceProvider::class,
+            DirectiveForgeServiceProvider::class,  // ← AJOUTER CECI
+        ];
     }
 }

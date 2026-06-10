@@ -16,6 +16,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 final class DataGeneratorTest extends UnitTestCase
 {
     private DataGenerator $generator;
+
     private DirectiveInteractionService&MockObject $interaction;
 
     protected function setUp(): void
@@ -31,7 +32,7 @@ final class DataGeneratorTest extends UnitTestCase
     {
         // Arrange: Create segments collection
         $segmentsCollection = new ScalarTypedCollection;
-        if (!empty($segments)) {
+        if (! empty($segments)) {
             $segmentsCollection->add(...$segments);
         }
 
@@ -51,6 +52,7 @@ final class DataGeneratorTest extends UnitTestCase
         // Arrange & Act: Convert string to PascalCase
         $string = str_replace(['-', '_'], ' ', $string);
         $string = ucwords($string);
+
         return str_replace(' ', '', $string);
     }
 

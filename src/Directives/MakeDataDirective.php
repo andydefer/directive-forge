@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
+use AndyDefer\Directive\Contexts\DirectiveContext;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
+use AndyDefer\Directive\Services\FileCreatorService;
 use AndyDefer\DirectiveForge\Generators\DataGenerator;
 use AndyDefer\DirectiveForge\Generators\RecordGenerator;
 use AndyDefer\DirectiveForge\Generators\TypedCollectionGenerator;
@@ -13,10 +15,12 @@ use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class MakeDataDirective extends BaseDirective
 {
-    public function __construct(DirectiveInteractionService $interaction)
-    {
-        parent::__construct($interaction);
-        $this->generator = new DataGenerator($interaction);
+    public function __construct(
+        DirectiveContext $context,
+        DirectiveInteractionService $interaction,
+        FileCreatorService $fileCreator
+    ) {
+        parent::__construct($context, $interaction, $fileCreator, new DataGenerator($interaction, $fileCreator));
     }
 
     public function getSignature(): string
@@ -31,8 +35,9 @@ final class MakeDataDirective extends BaseDirective
 
     public function getAliases(): StringTypedCollection
     {
-        $aliases = new StringTypedCollection();
-        $aliases->add('create-data', 'make-dto');
+        $aliases = new StringTypedCollection;
+        $aliases->add('create-data');
+        $aliases->add('make-dto');
 
         return $aliases;
     }
@@ -43,6 +48,7 @@ final class MakeDataDirective extends BaseDirective
 
         if ($name === null) {
             $this->error('Data name is required');
+
             return ExitCode::INVALID_ARGUMENT;
         }
 
@@ -64,13 +70,13 @@ final class MakeDataDirective extends BaseDirective
     /**
      * Crée le Record et la TypedCollection associés à la Data.
      *
-     * @param string $dataName Le nom de la Data (ex: 'user')
+     * @param  string  $dataName  Le nom de la Data (ex: 'user')
      */
     private function createRecordAndCollection(string $dataName): void
     {
         $segments = explode('/', $dataName);
         $rawClassName = array_pop($segments);
-        $subPath = !empty($segments) ? implode('/', $segments) : '';
+        $subPath = ! empty($segments) ? implode('/', $segments) : '';
 
         $normalizedBaseName = $this->toPascalCase($rawClassName);
 
@@ -78,32 +84,32 @@ final class MakeDataDirective extends BaseDirective
         $baseClassName = str_replace('Record', '', $baseClassName);
         $baseClassName = str_replace('Collection', '', $baseClassName);
 
-        $recordClassName = $baseClassName . 'Record';
-        $collectionClassName = $baseClassName . 'DataCollection';
+        $recordClassName = $baseClassName.'Record';
+        $collectionClassName = $baseClassName.'DataCollection';
 
-        $recordPath = !empty($subPath) ? $subPath . '/' . $recordClassName : $recordClassName;
-        $collectionPath = !empty($subPath) ? $subPath . '/' . $collectionClassName : $collectionClassName;
+        $recordPath = ! empty($subPath) ? $subPath.'/'.$recordClassName : $recordClassName;
+        $collectionPath = ! empty($subPath) ? $subPath.'/'.$collectionClassName : $collectionClassName;
 
         $this->createRecord($recordPath);
-        $this->createTypedCollection($collectionPath, $normalizedBaseName . 'Data');
+        $this->createTypedCollection($collectionPath, $normalizedBaseName.'Data');
 
-        $this->interaction->line('');
-        $this->interaction->info('🎉 Fully created:');
-        $this->interaction->line("   Data:       {$dataName}");
-        $this->interaction->line("   Record:     {$recordPath}");
-        $this->interaction->line("   Collection: {$collectionPath}");
+        $this->newLine();
+        $this->info('🎉 Fully created:');
+        $this->line("   Data:       {$dataName}");
+        $this->line("   Record:     {$recordPath}");
+        $this->line("   Collection: {$collectionPath}");
     }
 
     private function createRecord(string $path): void
     {
-        $recordGenerator = new RecordGenerator($this->interaction);
+        $recordGenerator = new RecordGenerator($this->interaction, $this->fileCreator);
         $pathInfo = $this->extractPathInfo($path);
-        $recordGenerator->generate($pathInfo);
+        $recordGenerator->generate($pathInfo, null, null);
     }
 
     private function createTypedCollection(string $path, string $itemType): void
     {
-        $collectionGenerator = new TypedCollectionGenerator($this->interaction);
+        $collectionGenerator = new TypedCollectionGenerator($this->interaction, $this->fileCreator);
         $pathInfo = $this->extractPathInfo($path);
         $collectionGenerator->generate($pathInfo, null, $itemType);
     }

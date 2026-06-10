@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
+use AndyDefer\Directive\Contexts\DirectiveContext;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\Directive\Services\DirectiveNamingService;
+use AndyDefer\Directive\Services\FileCreatorService;
 use AndyDefer\Directive\Services\SignatureValidationService;
 use AndyDefer\DirectiveForge\Generators\DirectiveGenerator;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
@@ -14,12 +16,18 @@ use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 final class MakeDirective extends BaseDirective
 {
     public function __construct(
+        DirectiveContext $context,
         DirectiveInteractionService $interaction,
+        FileCreatorService $fileCreator,
         private readonly SignatureValidationService $signatureValidator,
         private readonly DirectiveNamingService $namingService,
     ) {
-        parent::__construct($interaction);
-        $this->generator = new DirectiveGenerator($interaction, $signatureValidator, $namingService);
+        parent::__construct(
+            $context,
+            $interaction,
+            $fileCreator,
+            new DirectiveGenerator($interaction, $signatureValidator, $namingService)
+        );
     }
 
     public function getSignature(): string
@@ -35,7 +43,8 @@ final class MakeDirective extends BaseDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-directive', 'make-cmd');
+        $aliases->add('create-directive');
+        $aliases->add('make-cmd');
 
         return $aliases;
     }

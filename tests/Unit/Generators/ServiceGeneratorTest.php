@@ -16,6 +16,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 final class ServiceGeneratorTest extends UnitTestCase
 {
     private ServiceGenerator $generator;
+
     private DirectiveInteractionService&MockObject $interaction;
 
     protected function setUp(): void
@@ -30,7 +31,7 @@ final class ServiceGeneratorTest extends UnitTestCase
     {
         // Arrange: Create segments collection
         $segmentsCollection = new ScalarTypedCollection;
-        if (!empty($segments)) {
+        if (! empty($segments)) {
             $segmentsCollection->add(...$segments);
         }
 

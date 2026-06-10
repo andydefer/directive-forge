@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
+use AndyDefer\Directive\Contexts\DirectiveContext;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
+use AndyDefer\Directive\Services\FileCreatorService;
 use AndyDefer\DirectiveForge\Generators\ServiceGenerator;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
@@ -16,10 +18,12 @@ use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
  */
 final class MakeServiceDirective extends BaseDirective
 {
-    public function __construct(DirectiveInteractionService $interaction)
-    {
-        parent::__construct($interaction);
-        $this->generator = new ServiceGenerator($interaction);
+    public function __construct(
+        DirectiveContext $context,
+        DirectiveInteractionService $interaction,
+        FileCreatorService $fileCreator
+    ) {
+        parent::__construct($context, $interaction, $fileCreator, new ServiceGenerator($interaction, $fileCreator));
     }
 
     public function getSignature(): string
@@ -35,7 +39,8 @@ final class MakeServiceDirective extends BaseDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-service', 'make-svc');
+        $aliases->add('create-service');
+        $aliases->add('make-svc');
 
         return $aliases;
     }

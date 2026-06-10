@@ -34,7 +34,7 @@ final class ActionGenerator extends AbstractGenerator
         $className = $pathInfo->className;
         $namespace = $pathInfo->getNamespace($config->baseNamespace);
 
-        $collection = new ReplacementCollection();
+        $collection = new ReplacementCollection;
         $collection
             ->addReplacement('{{ namespace }}', $namespace)
             ->addReplacement('{{ class }}', $className);

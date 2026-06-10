@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
+use AndyDefer\Directive\Contexts\DirectiveContext;
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
+use AndyDefer\Directive\Services\FileCreatorService;
 use AndyDefer\DirectiveForge\Generators\TaskGenerator;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 
 final class MakeTaskDirective extends BaseDirective
 {
-    public function __construct(DirectiveInteractionService $interaction)
-    {
-        parent::__construct($interaction);
-        $this->generator = new TaskGenerator($interaction);
+    public function __construct(
+        DirectiveContext $context,
+        DirectiveInteractionService $interaction,
+        FileCreatorService $fileCreator
+    ) {
+        parent::__construct($context, $interaction, $fileCreator, new TaskGenerator($interaction, $fileCreator));
     }
 
     public function getSignature(): string
@@ -30,7 +34,8 @@ final class MakeTaskDirective extends BaseDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-task', 'make-job');
+        $aliases->add('create-task');
+        $aliases->add('make-job');
 
         return $aliases;
     }

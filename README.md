@@ -407,59 +407,7 @@ Directive Forge gère intelligemment les conversions de noms :
 ```bash
 ./vendor/bin/phpunit
 ```
-
 ---
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    DIRECTIVE FORGE                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                   DIRECTIVES                         │   │
-│  │  - MakeDirective                                     │   │
-│  │  - MakeActionDirective (avec --fully)                │   │
-│  │  - MakeRequestDirective (avec --fully)               │   │
-│  │  - MakeTaskDirective                                 │   │
-│  │  - MakeRepositoryDirective                           │   │
-│  │  - MakeRecordDirective                               │   │
-│  │  - MakeValueObjectDirective                          │   │
-│  │  - MakeConfigDirective                               │   │
-│  │  - MakeTypedCollectionDirective                      │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                           │                               │
-│                           ▼                               │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                   GÉNÉRATEURS                        │   │
-│  │  - AbstractGenerator (normalisation, création)      │   │
-│  │  - DirectiveGenerator                               │   │
-│  │  - ActionGenerator                                  │   │
-│  │  - RequestGenerator                                 │   │
-│  │  - TaskGenerator                                    │   │
-│  │  - RepositoryGenerator                              │   │
-│  │  - RecordGenerator                                  │   │
-│  │  - ValueObjectGenerator                             │   │
-│  │  - ConfigGenerator                                  │   │
-│  │  - TypedCollectionGenerator                         │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                           │                               │
-│                           ▼                               │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                    STUBS                            │   │
-│  │  - directive.stub                                   │   │
-│  │  - action.stub                                      │   │
-│  │  - request.stub                                     │   │
-│  │  - task.stub                                        │   │
-│  │  - repository.stub                                  │   │
-│  │  - record.stub                                      │   │
-│  │  - value-object.stub                                │   │
-│  │  - config.stub                                      │   │
-│  │  - typed-collection.stub                            │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
 
 ### Composants clés
 
