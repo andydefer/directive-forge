@@ -61,7 +61,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Directives/UserListDirective.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('class UserListDirective', $content);
@@ -78,7 +78,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Directives/User/Domain/HelloDirective.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('class HelloDirective', $content);
@@ -95,7 +95,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Directives/UserListDirective.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('class UserListDirective', $content);
@@ -113,7 +113,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Actions/User/ShowAction.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('class ShowAction', $content);
@@ -129,7 +129,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Actions/Api/V1/Users/ShowAction.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('class ShowAction', $content);
@@ -145,7 +145,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Actions/ShowUserAction.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('class ShowUserAction', $content);
@@ -163,7 +163,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Tasks/SendWelcomeEmailTask.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('task created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('class SendWelcomeEmailTask', $content);
@@ -180,7 +180,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Tasks/User/SendWelcomeEmailTask.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('task created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('namespace App\\Tasks\\User', $content);
@@ -196,7 +196,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Tasks/SendWelcomeEmailTask.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('task created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringNotContainsString('SendWelcomeEmailTaskTask', $content);
@@ -213,7 +213,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Repositories/UserRepository.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('class UserRepository', $content);
@@ -229,7 +229,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Repositories/Admin/UserRepository.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('namespace App\\Repositories\\Admin', $content);
@@ -245,7 +245,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Repositories/UserRepository.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringNotContainsString('UserRepositoryRepository', $content);
@@ -262,7 +262,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Records/UserDataRecord.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('class UserDataRecord', $content);
@@ -278,7 +278,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Records/Api/UserDataRecord.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('namespace App\\Records\\Api', $content);
@@ -294,7 +294,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Records/UserDataRecord.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringNotContainsString('UserDataRecordRecord', $content);
@@ -315,7 +315,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Collections/UserCollection.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('class UserCollection', $content);
@@ -337,7 +337,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Collections/UserCollection.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('@extends AbstractTypedCollection<UserRecord>', $content);
@@ -357,7 +357,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Collections/Admin/UserCollection.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('namespace App\\Collections\\Admin', $content);
@@ -378,7 +378,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Collections/UserCollection.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringNotContainsString('UserCollectionCollection', $content);
@@ -392,7 +392,7 @@ final class FileCreationTest extends IntegrationTestCase
         $tempDir = $this->service->getContext()->getTempDir();
         $fullPath = $tempDir . '/app/Collections/StringCollection.php';
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Item type is required', $response->output);
         $this->assertFileDoesNotExist($fullPath);
     }
@@ -404,11 +404,11 @@ final class FileCreationTest extends IntegrationTestCase
         $directiveName = 'user-list';
 
         $firstResponse = $this->registerAndRun('make-directive', [$directiveName]);
-        $this->assertSame(ExitCode::SUCCESS, $firstResponse->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $firstResponse->exit_code);
         $this->assertStringContainsString('directive created successfully!', strtolower($firstResponse->output));
 
         $secondResponse = $this->registerAndRun('make-directive', [$directiveName]);
-        $this->assertSame(ExitCode::FAILURE, $secondResponse->exitCode);
+        $this->assertSame(ExitCode::FAILURE, $secondResponse->exit_code);
         $this->assertStringContainsString('File already exists', $secondResponse->output);
     }
 
@@ -418,7 +418,7 @@ final class FileCreationTest extends IntegrationTestCase
 
         $response = $this->registerAndRun('make-directive', [$invalidName]);
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Invalid directive name', $response->output);
     }
 
@@ -426,7 +426,7 @@ final class FileCreationTest extends IntegrationTestCase
     {
         $response = $this->registerAndRun('make-directive');
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Not enough arguments', $response->output);
     }
 
@@ -438,7 +438,7 @@ final class FileCreationTest extends IntegrationTestCase
         $tempDir = $this->service->getContext()->getTempDir();
         $fullPath = $tempDir . '/app/Directives/CacheClearDirective.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
     }
@@ -449,7 +449,7 @@ final class FileCreationTest extends IntegrationTestCase
         $tempDir = $this->service->getContext()->getTempDir();
         $fullPath = $tempDir . '/app/Actions/User/ProfileAction.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
     }
@@ -460,7 +460,7 @@ final class FileCreationTest extends IntegrationTestCase
         $tempDir = $this->service->getContext()->getTempDir();
         $fullPath = $tempDir . '/app/Tasks/ProcessOrderTask.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('task created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
     }
@@ -471,7 +471,7 @@ final class FileCreationTest extends IntegrationTestCase
         $tempDir = $this->service->getContext()->getTempDir();
         $fullPath = $tempDir . '/app/Repositories/ProductRepository.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('repository created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
     }
@@ -482,7 +482,7 @@ final class FileCreationTest extends IntegrationTestCase
         $tempDir = $this->service->getContext()->getTempDir();
         $fullPath = $tempDir . '/app/Records/ProductDataRecord.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
     }
@@ -496,7 +496,7 @@ final class FileCreationTest extends IntegrationTestCase
         $tempDir = $this->service->getContext()->getTempDir();
         $fullPath = $tempDir . '/app/Collections/ProductCollection.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
     }
@@ -512,7 +512,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Directives/Api/V1/Admin/User/ListDirective.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('namespace App\\Directives\\Api\\V1\\Admin\\User', $content);
@@ -528,7 +528,7 @@ final class FileCreationTest extends IntegrationTestCase
         $fullPath = $tempDir . '/app/Actions/Api/V2/Shop/Cart/AddItemAction.php';
         $content = file_get_contents($fullPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('action created successfully!', strtolower($response->output));
         $this->assertFileExists($fullPath);
         $this->assertStringContainsString('namespace App\\Actions\\Api\\V2\\Shop\\Cart', $content);
@@ -540,17 +540,17 @@ final class FileCreationTest extends IntegrationTestCase
     public function test_creates_multiple_files_in_same_test(): void
     {
         $response1 = $this->service->run(MakeDirective::class, ['test-one']);
-        $this->assertSame(ExitCode::SUCCESS, $response1->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response1->exit_code);
         $this->assertStringContainsString('directive created successfully!', strtolower($response1->output));
         $this->assertFileExists($this->service->getContext()->getTempDir() . '/app/Directives/TestOneDirective.php');
 
         $response2 = $this->service->run(MakeActionDirective::class, ['test-two']);
-        $this->assertSame(ExitCode::SUCCESS, $response2->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response2->exit_code);
         $this->assertStringContainsString('action created successfully!', strtolower($response2->output));
         $this->assertFileExists($this->service->getContext()->getTempDir() . '/app/Actions/TestTwoAction.php');
 
         $response3 = $this->service->run(MakeTaskDirective::class, ['test-three']);
-        $this->assertSame(ExitCode::SUCCESS, $response3->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response3->exit_code);
         $this->assertStringContainsString('task created successfully!', strtolower($response3->output));
         $this->assertFileExists($this->service->getContext()->getTempDir() . '/app/Tasks/TestThreeTask.php');
     }

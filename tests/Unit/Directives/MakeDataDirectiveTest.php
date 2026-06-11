@@ -29,14 +29,14 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
     {
         $response = $this->service->run(MakeDataDirective::class, ['test']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_description_returns_description(): void
     {
         $response = $this->service->run(MakeDataDirective::class, ['test']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_aliases_returns_aliases(): void
@@ -44,17 +44,17 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
         $this->service->registerDirective(MakeDataDirective::class);
 
         $response = $this->service->runDirective('create-data', ['test-alias']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
         $response = $this->service->runDirective('make-dto', ['test-alias-2']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_execute_returns_error_when_name_missing(): void
     {
         $response = $this->service->run(MakeDataDirective::class, []);
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('name', $response->output);
     }
 
@@ -68,7 +68,7 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Data/UserData.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('data created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserData', $content);
@@ -86,7 +86,7 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Data/User/ProfileData.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('data created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('namespace App\\Data\\User', $content);
@@ -103,7 +103,7 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Data/ProductData.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('data created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class ProductData', $content);
@@ -119,7 +119,7 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Data/UserData.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('data created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserData', $content);
@@ -139,7 +139,7 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
         $recordPath = $tempDir . '/app/Records/UserRecord.php';
         $collectionPath = $tempDir . '/app/Collections/UserDataCollection.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Fully created', $response->output);
         $this->assertFileExists($dataPath);
         $this->assertFileExists($recordPath);
@@ -157,7 +157,7 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
         $recordPath = $tempDir . '/app/Records/User/ProfileRecord.php';
         $collectionPath = $tempDir . '/app/Collections/User/ProfileDataCollection.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Fully created', $response->output);
         $this->assertFileExists($dataPath);
         $this->assertFileExists($recordPath);
@@ -175,7 +175,7 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
         $recordPath = $tempDir . '/app/Records/UserProfileRecord.php';
         $collectionPath = $tempDir . '/app/Collections/UserProfileDataCollection.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertFileExists($dataPath);
         $this->assertFileExists($recordPath);
         $this->assertFileExists($collectionPath);
@@ -187,11 +187,11 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
         // First run - should succeed
         $firstResponse = $this->service->run(MakeDataDirective::class, [$dataName, '--fully']);
-        $this->assertSame(ExitCode::SUCCESS, $firstResponse->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $firstResponse->exit_code);
 
         // Second run - should fail because files already exist
         $secondResponse = $this->service->run(MakeDataDirective::class, [$dataName, '--fully']);
-        $this->assertSame(ExitCode::FAILURE, $secondResponse->exitCode);
+        $this->assertSame(ExitCode::FAILURE, $secondResponse->exit_code);
         $this->assertStringContainsString('File already exists', $secondResponse->output);
     }
 
@@ -205,7 +205,7 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
         $recordPath = $tempDir . '/app/Records/UserRecord.php';
         $collectionPath = $tempDir . '/app/Collections/UserDataCollection.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertFileExists($tempDir . '/app/Data/UserData.php');
         $this->assertFileDoesNotExist($recordPath);
         $this->assertFileDoesNotExist($collectionPath);

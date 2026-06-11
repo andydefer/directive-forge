@@ -29,14 +29,14 @@ final class MakeRecordDirectiveTest extends IntegrationTestCase
     {
         $response = $this->service->run(MakeRecordDirective::class, ['test']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_description_returns_description(): void
     {
         $response = $this->service->run(MakeRecordDirective::class, ['test']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_aliases_returns_aliases(): void
@@ -44,17 +44,17 @@ final class MakeRecordDirectiveTest extends IntegrationTestCase
         $this->service->registerDirective(MakeRecordDirective::class);
 
         $response = $this->service->runDirective('create-record', ['test-alias']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
         $response = $this->service->runDirective('make-dto', ['test-alias-2']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_execute_returns_error_when_name_missing(): void
     {
         $response = $this->service->run(MakeRecordDirective::class, []);
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Not enough arguments', $response->output);
     }
 
@@ -68,7 +68,7 @@ final class MakeRecordDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Records/UserDataRecord.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserDataRecord', $content);
@@ -85,7 +85,7 @@ final class MakeRecordDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Records/Api/UserDataRecord.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('namespace App\\Records\\Api', $content);
@@ -102,7 +102,7 @@ final class MakeRecordDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Records/ProductDataRecord.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class ProductDataRecord', $content);
@@ -118,7 +118,7 @@ final class MakeRecordDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Records/UserDataRecord.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserDataRecord', $content);
@@ -135,7 +135,7 @@ final class MakeRecordDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Records/UserProfileDataRecord.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('record created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserProfileDataRecord', $content);

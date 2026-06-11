@@ -29,14 +29,14 @@ final class MakeTypedCollectionDirectiveTest extends IntegrationTestCase
     {
         $response = $this->service->run(MakeTypedCollectionDirective::class, ['test', '--item-type=string']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_description_returns_description(): void
     {
         $response = $this->service->run(MakeTypedCollectionDirective::class, ['test', '--item-type=string']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_aliases_returns_aliases(): void
@@ -44,17 +44,17 @@ final class MakeTypedCollectionDirectiveTest extends IntegrationTestCase
         $this->service->registerDirective(MakeTypedCollectionDirective::class);
 
         $response = $this->service->runDirective('create-collection', ['test-alias', '--item-type=string']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
         $response = $this->service->runDirective('make-collection', ['test-alias-2', '--item-type=string']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_execute_returns_error_when_name_missing(): void
     {
         $response = $this->service->run(MakeTypedCollectionDirective::class, ['--item-type=string']);
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Not enough arguments', $response->output);
     }
 
@@ -64,7 +64,7 @@ final class MakeTypedCollectionDirectiveTest extends IntegrationTestCase
 
         $response = $this->service->run(MakeTypedCollectionDirective::class, [$collectionName]);
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Item type is required', $response->output);
     }
 
@@ -79,7 +79,7 @@ final class MakeTypedCollectionDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Collections/UserCollection.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserCollection', $content);
@@ -99,7 +99,7 @@ final class MakeTypedCollectionDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Collections/UserCollection.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('@extends AbstractTypedCollection<UserRecord>', $content);
@@ -117,7 +117,7 @@ final class MakeTypedCollectionDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Collections/Admin/UserCollection.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('namespace App\\Collections\\Admin', $content);
@@ -136,7 +136,7 @@ final class MakeTypedCollectionDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Collections/ProductCollection.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class ProductCollection', $content);
@@ -154,7 +154,7 @@ final class MakeTypedCollectionDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Collections/UserCollection.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('typed-collection created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserCollection', $content);
@@ -168,7 +168,7 @@ final class MakeTypedCollectionDirectiveTest extends IntegrationTestCase
 
         $response = $this->service->run(MakeTypedCollectionDirective::class, [$collectionName]);
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Item type is required', $response->output);
     }
 }

@@ -29,14 +29,14 @@ final class MakeTaskDirectiveTest extends IntegrationTestCase
     {
         $response = $this->service->run(MakeTaskDirective::class, ['test']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_description_returns_description(): void
     {
         $response = $this->service->run(MakeTaskDirective::class, ['test']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_aliases_returns_aliases(): void
@@ -44,17 +44,17 @@ final class MakeTaskDirectiveTest extends IntegrationTestCase
         $this->service->registerDirective(MakeTaskDirective::class);
 
         $response = $this->service->runDirective('create-task', ['test-alias']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
         $response = $this->service->runDirective('make-job', ['test-alias-2']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_execute_returns_error_when_name_missing(): void
     {
         $response = $this->service->run(MakeTaskDirective::class, []);
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Not enough arguments', $response->output);
     }
 
@@ -68,7 +68,7 @@ final class MakeTaskDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Tasks/SendWelcomeEmailTask.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('task created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class SendWelcomeEmailTask', $content);
@@ -86,7 +86,7 @@ final class MakeTaskDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Tasks/User/SendWelcomeEmailTask.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('task created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('namespace App\\Tasks\\User', $content);
@@ -103,7 +103,7 @@ final class MakeTaskDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Tasks/ProcessOrderTask.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('task created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class ProcessOrderTask', $content);
@@ -119,7 +119,7 @@ final class MakeTaskDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Tasks/SendWelcomeEmailTask.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('task created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class SendWelcomeEmailTask', $content);

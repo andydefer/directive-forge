@@ -29,14 +29,14 @@ final class MakeDirectiveTest extends IntegrationTestCase
     {
         $response = $this->service->run(MakeDirective::class, ['test']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_description_returns_description(): void
     {
         $response = $this->service->run(MakeDirective::class, ['test']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_aliases_returns_aliases(): void
@@ -44,17 +44,17 @@ final class MakeDirectiveTest extends IntegrationTestCase
         $this->service->registerDirective(MakeDirective::class);
 
         $response = $this->service->runDirective('create-directive', ['test-alias']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
         $response = $this->service->runDirective('make-cmd', ['test-alias-2']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_execute_returns_error_when_name_missing(): void
     {
         $response = $this->service->run(MakeDirective::class, []);
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Not enough arguments', $response->output);
     }
 
@@ -68,7 +68,7 @@ final class MakeDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Directives/UserListDirective.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class UserListDirective', $content);
@@ -86,7 +86,7 @@ final class MakeDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Directives/User/Domain/HelloDirective.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertDirectoryExists($tempDir . '/app/Directives/User/Domain');
@@ -105,7 +105,7 @@ final class MakeDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Directives/HelloDirective.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class HelloDirective', $content);
@@ -123,7 +123,7 @@ final class MakeDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Directives/HelloDirective.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('directive created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class HelloDirective', $content);
@@ -137,7 +137,7 @@ final class MakeDirectiveTest extends IntegrationTestCase
 
         $response = $this->service->run(MakeDirective::class, [$invalidName]);
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Invalid directive name', $response->output);
     }
 }

@@ -33,7 +33,7 @@ final class MakeActionDirectiveTest extends IntegrationTestCase
 
         $tempDir = $this->service->getContext()->getTempDir();
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Fully created', $response->output);
         $this->assertFileExists($tempDir . '/app/Actions/User/ProfileAction.php');
         $this->assertFileExists($tempDir . '/app/Http/Requests/User/ProfileRequest.php');
@@ -49,7 +49,7 @@ final class MakeActionDirectiveTest extends IntegrationTestCase
 
         $tempDir = $this->service->getContext()->getTempDir();
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Fully created', $response->output);
         $this->assertFileExists($tempDir . '/app/Actions/Api/V1/Users/ShowAction.php');
         $this->assertFileExists($tempDir . '/app/Http/Requests/Api/V1/Users/ShowRequest.php');
@@ -69,7 +69,7 @@ final class MakeActionDirectiveTest extends IntegrationTestCase
         $recordContent = file_get_contents($tempDir . '/app/Records/User/UpdateProfileRecord.php');
         $dataContent = file_get_contents($tempDir . '/app/Data/User/UpdateProfileData.php');
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('UpdateProfileAction', $actionContent);
         $this->assertStringContainsString('UpdateProfileRequest', $requestContent);
         $this->assertStringContainsString('UpdateProfileRecord', $recordContent);
@@ -84,7 +84,7 @@ final class MakeActionDirectiveTest extends IntegrationTestCase
 
         $tempDir = $this->service->getContext()->getTempDir();
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertFileExists($tempDir . '/app/Actions/User/ProfileAction.php');
         $this->assertFileDoesNotExist($tempDir . '/app/Http/Requests/User/ProfileRequest.php');
         $this->assertFileDoesNotExist($tempDir . '/app/Records/User/ProfileRecord.php');

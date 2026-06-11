@@ -29,14 +29,14 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
     {
         $response = $this->service->run(MakeRequestDirective::class, ['test']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_description_returns_description(): void
     {
         $response = $this->service->run(MakeRequestDirective::class, ['test']);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_get_aliases_returns_aliases(): void
@@ -44,17 +44,17 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $this->service->registerDirective(MakeRequestDirective::class);
 
         $response = $this->service->runDirective('create-request', ['test-alias']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
         $response = $this->service->runDirective('make-req', ['test-alias-2']);
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_execute_returns_error_when_name_missing(): void
     {
         $response = $this->service->run(MakeRequestDirective::class, []);
 
-        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exitCode);
+        $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('name', $response->output);
     }
 
@@ -68,7 +68,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Http/Requests/StoreUserRequest.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('request created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class StoreUserRequest', $content);
@@ -86,7 +86,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Http/Requests/UpdateUserRequest.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('use AndyDefer\\DomainStructures\\Utils\\EmptyRecord;', $content);
         $this->assertStringContainsString('return new EmptyRecord();', $content);
@@ -102,7 +102,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Http/Requests/Api/V1/StoreUserRequest.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('request created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('namespace App\\Http\\Requests\\Api\\V1', $content);
@@ -119,7 +119,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Http/Requests/LoginRequest.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('request created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class LoginRequest', $content);
@@ -135,7 +135,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Http/Requests/StoreUserRequest.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('request created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class StoreUserRequest', $content);
@@ -152,7 +152,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Http/Requests/PublicRequest.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('request created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('public function authorize(): bool', $content);
@@ -169,7 +169,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Http/Requests/EmptyRulesRequest.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('request created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('public function rules(): array', $content);
@@ -182,12 +182,12 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
         // First run - should succeed
         $firstResponse = $this->service->run(MakeRequestDirective::class, [$requestName]);
-        $this->assertSame(ExitCode::SUCCESS, $firstResponse->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $firstResponse->exit_code);
         $this->assertStringContainsString('request created successfully!', strtolower($firstResponse->output));
 
         // Second run - should fail because file already exists
         $secondResponse = $this->service->run(MakeRequestDirective::class, [$requestName]);
-        $this->assertSame(ExitCode::FAILURE, $secondResponse->exitCode);
+        $this->assertSame(ExitCode::FAILURE, $secondResponse->exit_code);
         $this->assertStringContainsString('File already exists', $secondResponse->output);
     }
 
@@ -201,7 +201,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Http/Requests/StoreUserRequest.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('request created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class StoreUserRequest', $content);
@@ -217,7 +217,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $expectedPath = $tempDir . '/app/Http/Requests/StoreUserRequest.php';
         $content = file_get_contents($expectedPath);
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('request created successfully!', strtolower($response->output));
         $this->assertFileExists($expectedPath);
         $this->assertStringContainsString('class StoreUserRequest', $content);
@@ -235,7 +235,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $requestPath = $tempDir . '/app/Http/Requests/User/StoreUserRequest.php';
         $recordPath = $tempDir . '/app/Records/User/StoreUserRecord.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Fully created', $response->output);
         $this->assertFileExists($requestPath);
         $this->assertFileExists($recordPath);
@@ -251,7 +251,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $requestPath = $tempDir . '/app/Http/Requests/Api/V1/StoreUserRequest.php';
         $recordPath = $tempDir . '/app/Records/Api/V1/StoreUserRecord.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Fully created', $response->output);
         $this->assertFileExists($requestPath);
         $this->assertFileExists($recordPath);
@@ -267,7 +267,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $requestPath = $tempDir . '/app/Http/Requests/UserProfile/UpdateEmailRequest.php';
         $recordPath = $tempDir . '/app/Records/UserProfile/UpdateEmailRecord.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertFileExists($requestPath);
         $this->assertFileExists($recordPath);
     }
@@ -281,7 +281,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $tempDir = $this->service->getContext()->getTempDir();
         $recordPath = $tempDir . '/app/Records/User/StoreUserRecord.php';
 
-        $this->assertSame(ExitCode::SUCCESS, $response->exitCode);
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertFileExists($tempDir . '/app/Http/Requests/User/StoreUserRequest.php');
         $this->assertFileDoesNotExist($recordPath);
     }
