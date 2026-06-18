@@ -4,34 +4,27 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
-use AndyDefer\Directive\Contexts\DirectiveContext;
+use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Services\DirectiveInteractionService;
-use AndyDefer\Directive\Services\FileCreatorService;
-use AndyDefer\DirectiveForge\Generators\ActionGenerator;
-use AndyDefer\DirectiveForge\Generators\DataGenerator;
-use AndyDefer\DirectiveForge\Generators\RecordGenerator;
-use AndyDefer\DirectiveForge\Generators\RequestGenerator;
+use AndyDefer\Directive\Records\DirectiveExecutionRecord;
+use AndyDefer\Directive\Records\ReplacementRecord;
+use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
+use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
+use InvalidArgumentException;
+use Throwable;
 
-final class MakeActionDirective extends BaseDirective
+final class MakeActionDirective extends AbstractDirective
 {
-    public function __construct(
-        DirectiveContext $context,
-        DirectiveInteractionService $interaction,
-        FileCreatorService $fileCreator
-    ) {
-        parent::__construct($context, $interaction, $fileCreator, new ActionGenerator($interaction, $fileCreator));
-    }
-
     public function getSignature(): string
     {
-        return 'make-action {name} {--fully}';
+        return 'make-action {name} {--supfile}';
     }
 
     public function getDescription(): string
     {
-        return 'Create a new action class (with --fully option to also create Request, Record and Data)';
+        return 'Create a new action class';
     }
 
     public function getAliases(): StringTypedCollection
@@ -43,115 +36,109 @@ final class MakeActionDirective extends BaseDirective
         return $aliases;
     }
 
+    public function shouldBootLaravel(): bool
+    {
+        return true;
+    }
+
     public function execute(): ExitCode
     {
         $name = $this->argument('name');
+        $supfile = $this->option('supfile');
 
-        if ($name === null) {
+        if ($name === null || $name === '') {
             $this->error('Action name is required');
 
             return ExitCode::INVALID_ARGUMENT;
         }
 
-        // Sauvegarder le nom original avant que parent::execute() ne le modifie
-        $originalName = $name;
+        try {
+            $app = $this->getLaravel();
 
-        // Créer l'Action
-        $actionResult = parent::execute();
+            $context = $app->make(DirectiveForgeContext::class)
+                ->setTypeDefinition(new TypeDefinitionRecord('action', 'Action', 'Actions'));
 
-        if ($actionResult !== ExitCode::SUCCESS) {
-            return $actionResult;
+            $generator = $app->make(GeneratorService::class);
+
+            // Gestion des fichiers supplémentaires
+            $baseName = preg_replace('/-?action$/i', '', $name);
+
+            if ($supfile !== null && $supfile !== false) {
+                // Cas -a : Créer une request avec record (make-request --r)
+                if ($supfile === 'a') {
+                    $requestName = $baseName.'-request';
+                    $args = new StringTypedCollection;
+                    $args->add($requestName);
+                    $args->add('--r');  // Crée le record associé
+                    $this->call(new DirectiveExecutionRecord('make-request', $args));
+                }
+                // Cas -r : Créer une request seule (sans record)
+                elseif ($supfile === 'r') {
+                    $requestName = $baseName.'-request';
+                    $args = new StringTypedCollection;
+                    $args->add($requestName);
+                    $this->call(new DirectiveExecutionRecord('make-request', $args));
+                }
+            }
+
+            // Création de l'action
+            $suffix = $context->getSuffix();
+            $nameWithSuffix = $name;
+            if (! str_ends_with(strtolower($name), strtolower($suffix))) {
+                $nameWithSuffix = $name.'-'.$suffix;
+            }
+
+            $fileName = $context->normalizeFileName($nameWithSuffix);
+            $filePath = $context->createFilePath($fileName);
+            $className = $filePath->getFileName();
+            $namespace = $context->buildNamespace($filePath);
+
+            if ($context->fileExists($fileName)) {
+                $this->error('Action already exists: '.$context->getFullPath($fileName));
+
+                return ExitCode::INVALID_ARGUMENT;
+            }
+
+            $stub = $context->loadStub('action');
+
+            $stub->replace(new ReplacementRecord('namespace', $namespace));
+            $stub->replace(new ReplacementRecord('class', $className));
+
+            $context->ensureDirectoryExists();
+
+            $generatorContext = $generator->generate(
+                $stub,
+                $filePath,
+                $context->getBaseDirectory()
+            );
+
+            if ($generatorContext->isSuccess()) {
+                $this->info('✅ Action created successfully!');
+                $this->line('   Path: '.$generatorContext->getFullPath());
+                $this->line('   Class: '.$namespace.'\\'.$className);
+                $this->line('   Mode: '.$context->getMode());
+
+                if ($supfile === 'a') {
+                    $this->line('   ✅ Request + Record created successfully!');
+                } elseif ($supfile === 'r') {
+                    $this->line('   ✅ Request created successfully!');
+                }
+
+                return ExitCode::SUCCESS;
+            }
+
+            $this->error('❌ '.$generatorContext->getMessage());
+
+            return ExitCode::FAILURE;
+
+        } catch (InvalidArgumentException $e) {
+            $this->error('❌ '.$e->getMessage());
+
+            return ExitCode::INVALID_ARGUMENT;
+        } catch (Throwable $e) {
+            $this->error('❌ '.$e->getMessage());
+
+            return ExitCode::FAILURE;
         }
-
-        // Si l'option --fully est présente, créer également la Request, le Record et la Data
-        if ($this->option('fully')) {
-            $this->createRequestRecordAndData($originalName);
-        }
-
-        return ExitCode::SUCCESS;
-    }
-
-    /**
-     * Crée la Request, le Record et la Data associés à l'Action.
-     *
-     * @param  string  $actionName  Le nom de l'Action (ex: 'user/show')
-     */
-    private function createRequestRecordAndData(string $actionName): void
-    {
-        // Extraire le chemin et le nom de base
-        $segments = explode('/', $actionName);
-        $rawClassName = array_pop($segments);
-        $subPath = ! empty($segments) ? implode('/', $segments) : '';
-
-        // Normaliser le nom de base (kebab-case -> PascalCase) en utilisant la méthode parente
-        $normalizedBaseName = $this->toPascalCase($rawClassName);
-
-        // Noms des classes (sans suffixe Action)
-        $baseClassName = str_replace('Action', '', $normalizedBaseName);
-        $baseClassName = str_replace('Request', '', $baseClassName);
-        $baseClassName = str_replace('Record', '', $baseClassName);
-        $baseClassName = str_replace('Data', '', $baseClassName);
-
-        $requestClassName = $baseClassName.'Request';
-        $recordClassName = $baseClassName.'Record';
-        $dataClassName = $baseClassName.'Data';
-
-        // Chemins complets
-        $requestPath = ! empty($subPath) ? $subPath.'/'.$requestClassName : $requestClassName;
-        $recordPath = ! empty($subPath) ? $subPath.'/'.$recordClassName : $recordClassName;
-        $dataPath = ! empty($subPath) ? $subPath.'/'.$dataClassName : $dataClassName;
-
-        // Créer la Request via son générateur
-        $this->createRequest($requestPath);
-
-        // Créer le Record via son générateur
-        $this->createRecord($recordPath);
-
-        // Créer la Data via son générateur
-        $this->createData($dataPath);
-
-        // Afficher un message récapitulatif
-        $this->newLine();
-        $this->info('🎉 Fully created:');
-        $this->line("   Action:  {$actionName}");
-        $this->line("   Request: {$requestPath}");
-        $this->line("   Record:  {$recordPath}");
-        $this->line("   Data:    {$dataPath}");
-    }
-
-    /**
-     * Crée une Request.
-     *
-     * @param  string  $path  Le chemin de la Request
-     */
-    private function createRequest(string $path): void
-    {
-        $requestGenerator = new RequestGenerator($this->interaction, $this->fileCreator);
-        $pathInfo = $this->extractPathInfo($path);
-        $requestGenerator->generate($pathInfo, null, null);
-    }
-
-    /**
-     * Crée un Record.
-     *
-     * @param  string  $path  Le chemin du Record
-     */
-    private function createRecord(string $path): void
-    {
-        $recordGenerator = new RecordGenerator($this->interaction, $this->fileCreator);
-        $pathInfo = $this->extractPathInfo($path);
-        $recordGenerator->generate($pathInfo, null, null);
-    }
-
-    /**
-     * Crée une Data.
-     *
-     * @param  string  $path  Le chemin de la Data
-     */
-    private function createData(string $path): void
-    {
-        $dataGenerator = new DataGenerator($this->interaction, $this->fileCreator);
-        $pathInfo = $this->extractPathInfo($path);
-        $dataGenerator->generate($pathInfo, null, null);
     }
 }

@@ -4,37 +4,27 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
-use AndyDefer\Directive\Contexts\DirectiveContext;
+use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Services\DirectiveInteractionService;
-use AndyDefer\Directive\Services\FileCreatorService;
-use AndyDefer\DirectiveForge\Generators\RecordGenerator;
-use AndyDefer\DirectiveForge\Generators\RequestGenerator;
+use AndyDefer\Directive\Records\DirectiveExecutionRecord;
+use AndyDefer\Directive\Records\ReplacementRecord;
+use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
+use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
+use InvalidArgumentException;
+use Throwable;
 
-/**
- * Directive to create a new Form Request class.
- *
- * @author Andy Defer
- */
-final class MakeRequestDirective extends BaseDirective
+final class MakeRequestDirective extends AbstractDirective
 {
-    public function __construct(
-        DirectiveContext $context,
-        DirectiveInteractionService $interaction,
-        FileCreatorService $fileCreator
-    ) {
-        parent::__construct($context, $interaction, $fileCreator, new RequestGenerator($interaction, $fileCreator));
-    }
-
     public function getSignature(): string
     {
-        return 'make-request {name} {--fully}';
+        return 'make-request {name} {--r}';
     }
 
     public function getDescription(): string
     {
-        return 'Create a new form request class (with --fully option to also create Record)';
+        return 'Create a new request class';
     }
 
     public function getAliases(): StringTypedCollection
@@ -46,67 +36,110 @@ final class MakeRequestDirective extends BaseDirective
         return $aliases;
     }
 
+    public function shouldBootLaravel(): bool
+    {
+        return true;
+    }
+
     public function execute(): ExitCode
     {
         $name = $this->argument('name');
+        $createRecord = $this->option('r') ?? false;
 
-        if ($name === null) {
+        if ($name === null || $name === '') {
             $this->error('Request name is required');
 
             return ExitCode::INVALID_ARGUMENT;
         }
 
-        // Sauvegarder le nom original
-        $originalName = $name;
+        try {
+            $app = $this->getLaravel();
 
-        // Créer la Request
-        $requestResult = parent::execute();
+            $context = $app->make(DirectiveForgeContext::class)
+                ->setTypeDefinition(new TypeDefinitionRecord('request', 'Request', 'Requests'));
 
-        if ($requestResult !== ExitCode::SUCCESS) {
-            return $requestResult;
+            $generator = $app->make(GeneratorService::class);
+
+            $suffix = $context->getSuffix();
+            $nameWithSuffix = $name;
+            if (! str_ends_with(strtolower($name), strtolower($suffix))) {
+                $nameWithSuffix = $name.'-'.$suffix;
+            }
+
+            $fileName = $context->normalizeFileName($nameWithSuffix);
+            $filePath = $context->createFilePath($fileName);
+            $className = $filePath->getFileName();
+            $namespace = $context->buildNamespace($filePath);
+
+            if ($context->fileExists($fileName)) {
+                $this->error('Request already exists: '.$context->getFullPath($fileName));
+
+                return ExitCode::INVALID_ARGUMENT;
+            }
+
+            $hasRecord = false;
+
+            if ($createRecord) {
+                $recordName = preg_replace('/-?request$/i', '', $name);
+                $recordName = $recordName.'-record';
+
+                $args = new StringTypedCollection;
+                $args->add($recordName);
+
+                $this->call(new DirectiveExecutionRecord('make-record', $args));
+                $hasRecord = true;
+            }
+
+            $stub = $context->loadStub('request');
+
+            $stub->replace(new ReplacementRecord('namespace', $namespace));
+            $stub->replace(new ReplacementRecord('class', $className));
+
+            if ($hasRecord) {
+                $recordClassName = str_replace('Request', '', $className).'Record';
+
+                $recordNamespace = str_replace('Requests', 'Records', $namespace);
+                $recordFullClass = $recordNamespace.'\\'.$recordClassName;
+
+                $stub->replace(new ReplacementRecord('record_class', $recordFullClass));
+                $stub->replace(new ReplacementRecord('record_import', 'use '.$recordFullClass.';'));
+                $stub->replace(new ReplacementRecord('record_return', $recordClassName.'::from([ // TODO: Map request data to record properties ])'));
+            } else {
+                $stub->replace(new ReplacementRecord('record_class', 'EmptyRecord'));
+                $stub->replace(new ReplacementRecord('record_import', 'use AndyDefer\\DomainStructures\\Utils\\EmptyRecord;'));
+                $stub->replace(new ReplacementRecord('record_return', 'new EmptyRecord();'));
+            }
+
+            $context->ensureDirectoryExists();
+
+            $generatorContext = $generator->generate(
+                $stub,
+                $filePath,
+                $context->getBaseDirectory()
+            );
+
+            if ($generatorContext->isSuccess()) {
+                $this->info('✅ Request created successfully!');
+                $this->line('   Path: '.$generatorContext->getFullPath());
+                $this->line('   Class: '.$namespace.'\\'.$className);
+                $this->line('   Record: '.($hasRecord ? $recordClassName : 'EmptyRecord'));
+                $this->line('   Mode: '.$context->getMode());
+
+                return ExitCode::SUCCESS;
+            }
+
+            $this->error('❌ '.$generatorContext->getMessage());
+
+            return ExitCode::FAILURE;
+
+        } catch (InvalidArgumentException $e) {
+            $this->error('❌ '.$e->getMessage());
+
+            return ExitCode::INVALID_ARGUMENT;
+        } catch (Throwable $e) {
+            $this->error('❌ '.$e->getMessage());
+
+            return ExitCode::FAILURE;
         }
-
-        // Si l'option --fully est présente, créer également le Record
-        if ($this->option('fully')) {
-            $this->createRecord($originalName);
-        }
-
-        return ExitCode::SUCCESS;
-    }
-
-    /**
-     * Crée le Record associé à la Request.
-     *
-     * @param  string  $requestName  Le nom de la Request (ex: 'user/StoreUserRequest')
-     */
-    private function createRecord(string $requestName): void
-    {
-        // Extraire le chemin et le nom de base
-        $segments = explode('/', $requestName);
-        $rawClassName = array_pop($segments);
-        $subPath = ! empty($segments) ? implode('/', $segments) : '';
-
-        // Normaliser le nom de base
-        $normalizedBaseName = $this->toPascalCase($rawClassName);
-
-        // Supprimer le suffixe 'Request' pour obtenir le nom de base
-        $baseClassName = str_replace('Request', '', $normalizedBaseName);
-
-        // Nom du Record
-        $recordClassName = $baseClassName.'Record';
-
-        // Chemin complet du Record
-        $recordPath = ! empty($subPath) ? $subPath.'/'.$recordClassName : $recordClassName;
-
-        // Créer le Record via son générateur
-        $recordGenerator = new RecordGenerator($this->interaction);
-        $pathInfo = $this->extractPathInfo($recordPath);
-        $recordGenerator->generate($pathInfo, null, null);
-
-        // Afficher un message récapitulatif
-        $this->newLine();
-        $this->info('🎉 Fully created:');
-        $this->line("   Request: {$requestName}");
-        $this->line("   Record:  {$recordPath}");
     }
 }

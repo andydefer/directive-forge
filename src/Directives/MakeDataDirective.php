@@ -4,33 +4,26 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
-use AndyDefer\Directive\Contexts\DirectiveContext;
+use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Services\DirectiveInteractionService;
-use AndyDefer\Directive\Services\FileCreatorService;
-use AndyDefer\DirectiveForge\Generators\DataGenerator;
-use AndyDefer\DirectiveForge\Generators\RecordGenerator;
-use AndyDefer\DirectiveForge\Generators\TypedCollectionGenerator;
+use AndyDefer\Directive\Records\ReplacementRecord;
+use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
+use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
+use InvalidArgumentException;
+use Throwable;
 
-final class MakeDataDirective extends BaseDirective
+final class MakeDataDirective extends AbstractDirective
 {
-    public function __construct(
-        DirectiveContext $context,
-        DirectiveInteractionService $interaction,
-        FileCreatorService $fileCreator
-    ) {
-        parent::__construct($context, $interaction, $fileCreator, new DataGenerator($interaction, $fileCreator));
-    }
-
     public function getSignature(): string
     {
-        return 'make-data {name} {--fully}';
+        return 'make-data {name} {description=}';
     }
 
     public function getDescription(): string
     {
-        return 'Create a new data DTO class (with --fully option to also create Record and TypedCollection)';
+        return 'Create a new data DTO class';
     }
 
     public function getAliases(): StringTypedCollection
@@ -42,75 +35,76 @@ final class MakeDataDirective extends BaseDirective
         return $aliases;
     }
 
+    public function shouldBootLaravel(): bool
+    {
+        return true;
+    }
+
     public function execute(): ExitCode
     {
         $name = $this->argument('name');
+        $description = $this->option('description') ?? 'Data DTO for '.$name;
 
-        if ($name === null) {
+        if ($name === null || $name === '') {
             $this->error('Data name is required');
 
             return ExitCode::INVALID_ARGUMENT;
         }
 
-        $originalName = $name;
+        try {
+            $app = $this->getLaravel();
 
-        $dataResult = parent::execute();
+            $context = $app->make(DirectiveForgeContext::class)
+                ->setTypeDefinition(new TypeDefinitionRecord('data', 'Data', 'Datas'));
 
-        if ($dataResult !== ExitCode::SUCCESS) {
-            return $dataResult;
+            $generator = $app->make(GeneratorService::class);
+
+            $fileName = $context->normalizeFileName($name);
+            $filePath = $context->createFilePath($fileName);
+            $className = $filePath->getFileName();
+            $namespace = $context->buildNamespace($filePath);
+
+            if ($context->fileExists($fileName)) {
+                $this->error('Data already exists: '.$context->getFullPath($fileName));
+
+                return ExitCode::INVALID_ARGUMENT;
+            }
+
+            $stub = $context->loadStub('data');
+
+            $stub->replace(new ReplacementRecord('namespace', $namespace));
+            $stub->replace(new ReplacementRecord('class', $className));
+            $stub->replace(new ReplacementRecord('description', $description));
+
+            $context->ensureDirectoryExists();
+
+            $generatorContext = $generator->generate(
+                $stub,
+                $filePath,
+                $context->getBaseDirectory()
+            );
+
+            if ($generatorContext->isSuccess()) {
+                $this->info('✅ Data created successfully!');
+                $this->line('   Path: '.$generatorContext->getFullPath());
+                $this->line('   Class: '.$namespace.'\\'.$className);
+                $this->line('   Mode: '.$context->getMode());
+
+                return ExitCode::SUCCESS;
+            }
+
+            $this->error('❌ '.$generatorContext->getMessage());
+
+            return ExitCode::FAILURE;
+
+        } catch (InvalidArgumentException $e) {
+            $this->error('❌ '.$e->getMessage());
+
+            return ExitCode::INVALID_ARGUMENT;
+        } catch (Throwable $e) {
+            $this->error('❌ '.$e->getMessage());
+
+            return ExitCode::FAILURE;
         }
-
-        if ($this->option('fully')) {
-            $this->createRecordAndCollection($originalName);
-        }
-
-        return ExitCode::SUCCESS;
-    }
-
-    /**
-     * Crée le Record et la TypedCollection associés à la Data.
-     *
-     * @param  string  $dataName  Le nom de la Data (ex: 'user')
-     */
-    private function createRecordAndCollection(string $dataName): void
-    {
-        $segments = explode('/', $dataName);
-        $rawClassName = array_pop($segments);
-        $subPath = ! empty($segments) ? implode('/', $segments) : '';
-
-        $normalizedBaseName = $this->toPascalCase($rawClassName);
-
-        $baseClassName = str_replace('Data', '', $normalizedBaseName);
-        $baseClassName = str_replace('Record', '', $baseClassName);
-        $baseClassName = str_replace('Collection', '', $baseClassName);
-
-        $recordClassName = $baseClassName.'Record';
-        $collectionClassName = $baseClassName.'DataCollection';
-
-        $recordPath = ! empty($subPath) ? $subPath.'/'.$recordClassName : $recordClassName;
-        $collectionPath = ! empty($subPath) ? $subPath.'/'.$collectionClassName : $collectionClassName;
-
-        $this->createRecord($recordPath);
-        $this->createTypedCollection($collectionPath, $normalizedBaseName.'Data');
-
-        $this->newLine();
-        $this->info('🎉 Fully created:');
-        $this->line("   Data:       {$dataName}");
-        $this->line("   Record:     {$recordPath}");
-        $this->line("   Collection: {$collectionPath}");
-    }
-
-    private function createRecord(string $path): void
-    {
-        $recordGenerator = new RecordGenerator($this->interaction, $this->fileCreator);
-        $pathInfo = $this->extractPathInfo($path);
-        $recordGenerator->generate($pathInfo, null, null);
-    }
-
-    private function createTypedCollection(string $path, string $itemType): void
-    {
-        $collectionGenerator = new TypedCollectionGenerator($this->interaction, $this->fileCreator);
-        $pathInfo = $this->extractPathInfo($path);
-        $collectionGenerator->generate($pathInfo, null, $itemType);
     }
 }

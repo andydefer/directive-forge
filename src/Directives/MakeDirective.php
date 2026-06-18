@@ -4,35 +4,21 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
-use AndyDefer\Directive\Contexts\DirectiveContext;
+use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Services\DirectiveInteractionService;
-use AndyDefer\Directive\Services\DirectiveNamingService;
-use AndyDefer\Directive\Services\FileCreatorService;
-use AndyDefer\Directive\Services\SignatureValidationService;
-use AndyDefer\DirectiveForge\Generators\DirectiveGenerator;
+use AndyDefer\Directive\Records\ReplacementRecord;
+use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
+use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
+use InvalidArgumentException;
+use Throwable;
 
-final class MakeDirective extends BaseDirective
+final class MakeDirective extends AbstractDirective
 {
-    public function __construct(
-        DirectiveContext $context,
-        DirectiveInteractionService $interaction,
-        FileCreatorService $fileCreator,
-        private readonly SignatureValidationService $signatureValidator,
-        private readonly DirectiveNamingService $namingService,
-    ) {
-        parent::__construct(
-            $context,
-            $interaction,
-            $fileCreator,
-            new DirectiveGenerator($interaction, $signatureValidator, $namingService)
-        );
-    }
-
     public function getSignature(): string
     {
-        return 'make-directive {name}';
+        return 'make-directive {name} {description=}';
     }
 
     public function getDescription(): string
@@ -49,26 +35,79 @@ final class MakeDirective extends BaseDirective
         return $aliases;
     }
 
+    public function shouldBootLaravel(): bool
+    {
+        return true;
+    }
+
     public function execute(): ExitCode
     {
         $name = $this->argument('name');
+        $description = $this->option('description') ?? 'Description of the directive';
 
-        if ($name === null) {
+        if ($name === null || $name === '') {
             $this->error('Directive name is required');
 
             return ExitCode::INVALID_ARGUMENT;
         }
 
-        $baseName = basename($name);
+        try {
+            $app = $this->getLaravel();
 
-        /** @var DirectiveGenerator $generator */
-        $generator = $this->generator;
-        $validation = $generator->validate($baseName);
+            $context = $app->make(DirectiveForgeContext::class)
+                ->setTypeDefinition(new TypeDefinitionRecord('directive', 'Directive', 'Directives'));
 
-        if (! $validation) {
+            $generator = $app->make(GeneratorService::class);
+
+            $signature = strtolower($name);
+            $fileName = $context->normalizeFileName($name);
+            $filePath = $context->createFilePath($fileName);
+            $className = $filePath->getFileName();
+            $namespace = $context->buildNamespace($filePath);
+
+            if ($context->fileExists($fileName)) {
+                $this->error('Directive already exists: '.$context->getFullPath($fileName));
+
+                return ExitCode::INVALID_ARGUMENT;
+            }
+
+            $stub = $context->loadStub('directive');
+
+            $stub->replace(new ReplacementRecord('namespace', $namespace));
+            $stub->replace(new ReplacementRecord('class', $className));
+            $stub->replace(new ReplacementRecord('signature', $signature));
+            $stub->replace(new ReplacementRecord('description', $description));
+
+            $context->ensureDirectoryExists();
+
+            $generatorContext = $generator->generate(
+                $stub,
+                $filePath,
+                $context->getBaseDirectory()
+            );
+
+            if ($generatorContext->isSuccess()) {
+                $this->info('✅ Directive created successfully!');
+                $this->line('   Path: '.$generatorContext->getFullPath());
+                $this->line('   Class: '.$namespace.'\\'.$className);
+                $this->line('   Signature: '.$signature);
+                $this->line('   Mode: '.$context->getMode());
+
+                return ExitCode::SUCCESS;
+            }
+
+            $this->error('❌ '.$generatorContext->getMessage());
+
+            return ExitCode::FAILURE;
+
+        } catch (InvalidArgumentException $e) {
+            $this->error('❌ '.$e->getMessage());
+
             return ExitCode::INVALID_ARGUMENT;
-        }
+        } catch (Throwable $e) {
+            $this->error('❌ '.$e->getMessage());
 
-        return parent::execute();
+            return ExitCode::FAILURE;
+        }
     }
 }

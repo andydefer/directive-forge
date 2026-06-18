@@ -6,10 +6,8 @@ namespace AndyDefer\DirectiveForge\Directives;
 
 use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Collections\ReplacementCollection;
-use AndyDefer\Directive\Contexts\DirectiveContext;
 use AndyDefer\Directive\Contexts\FileCreationContext;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\Directive\Services\FileCreatorService;
 use AndyDefer\DirectiveForge\Contracts\GeneratorInterface;
 use AndyDefer\DirectiveForge\ValueObjects\PathInfo;
@@ -29,17 +27,6 @@ abstract class BaseDirective extends AbstractDirective
      * The generator instance responsible for file creation.
      */
     protected GeneratorInterface $generator;
-
-    public function __construct(
-        DirectiveContext $context,
-        DirectiveInteractionService $interaction,
-        FileCreatorService $fileCreator,
-        GeneratorInterface $generator
-    ) {
-        parent::__construct($context, $interaction);
-        $this->fileCreator = $fileCreator;
-        $this->generator = $generator;
-    }
 
     /**
      * Determines whether Laravel should be bootstrapped before executing this directive.

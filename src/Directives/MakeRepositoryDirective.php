@@ -4,32 +4,28 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Directives;
 
-use AndyDefer\Directive\Contexts\DirectiveContext;
+use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Services\DirectiveInteractionService;
-use AndyDefer\Directive\Services\FileCreatorService;
-use AndyDefer\DirectiveForge\Generators\RecordGenerator;
-use AndyDefer\DirectiveForge\Generators\RepositoryGenerator;
+use AndyDefer\Directive\Records\DirectiveExecutionRecord;
+use AndyDefer\Directive\Records\ReplacementRecord;
+use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
+use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
+use Illuminate\Support\Str;
+use InvalidArgumentException;
+use Throwable;
 
-final class MakeRepositoryDirective extends BaseDirective
+final class MakeRepositoryDirective extends AbstractDirective
 {
-    public function __construct(
-        DirectiveContext $context,
-        DirectiveInteractionService $interaction,
-        FileCreatorService $fileCreator
-    ) {
-        parent::__construct($context, $interaction, $fileCreator, new RepositoryGenerator($interaction, $fileCreator));
-    }
-
     public function getSignature(): string
     {
-        return 'make-repository {name} {--fully}';
+        return 'make-repository {model}';
     }
 
     public function getDescription(): string
     {
-        return 'Create a new repository class (with --fully option to also create Record and FilterRecord)';
+        return 'Create a new repository with associated records for a model';
     }
 
     public function getAliases(): StringTypedCollection
@@ -41,85 +37,117 @@ final class MakeRepositoryDirective extends BaseDirective
         return $aliases;
     }
 
+    public function shouldBootLaravel(): bool
+    {
+        return true;
+    }
+
     public function execute(): ExitCode
     {
-        $name = $this->argument('name');
+        $modelName = $this->argument('model');
 
-        if ($name === null) {
-            $this->error('Repository name is required');
+        if ($modelName === null || $modelName === '') {
+            $this->error('Model name is required');
 
             return ExitCode::INVALID_ARGUMENT;
         }
 
-        // Sauvegarder le nom original
-        $originalName = $name;
+        try {
+            $app = $this->getLaravel();
 
-        // Créer le Repository
-        $repositoryResult = parent::execute();
+            // 1. Déterminer les noms des classes
+            $baseName = Str::studly($modelName);
+            $recordName = $baseName.'Record';
+            $filtersName = $baseName.'FiltersRecord';
+            $repositoryName = $baseName.'Repository';
 
-        if ($repositoryResult !== ExitCode::SUCCESS) {
-            return $repositoryResult;
+            // 2. Créer le Record avec make-record
+            $recordArgs = new StringTypedCollection;
+            $recordArgs->add(Str::kebab($baseName).'-record');
+            $this->call(new DirectiveExecutionRecord('make-record', $recordArgs));
+
+            // 3. Créer le FiltersRecord avec make-record
+            $filtersArgs = new StringTypedCollection;
+            $filtersArgs->add(Str::kebab($baseName).'-filters-record');
+            $this->call(new DirectiveExecutionRecord('make-record', $filtersArgs));
+
+            // 4. Créer le Repository
+            $repositoryCreated = $this->createRepository($baseName, $recordName, $filtersName);
+            if ($repositoryCreated === ExitCode::FAILURE) {
+                return ExitCode::FAILURE;
+            }
+
+            $baseNamespace = $app['config']->get('directive-forge.namespace', 'App');
+
+            $this->info('✅ Repository created successfully!');
+            $this->line('   Repository: '.$baseNamespace.'\\Repositories\\'.$repositoryName);
+            $this->line('   Record: '.$baseNamespace.'\\Records\\'.$recordName);
+            $this->line('   Filters: '.$baseNamespace.'\\Records\\'.$filtersName);
+
+            return ExitCode::SUCCESS;
+
+        } catch (InvalidArgumentException $e) {
+            $this->error('❌ '.$e->getMessage());
+
+            return ExitCode::INVALID_ARGUMENT;
+        } catch (Throwable $e) {
+            $this->error('❌ '.$e->getMessage());
+
+            return ExitCode::FAILURE;
+        }
+    }
+
+    private function createRepository(string $baseName, string $recordName, string $filtersName): ExitCode
+    {
+        $app = $this->getLaravel();
+
+        $context = $app->make(DirectiveForgeContext::class)
+            ->setTypeDefinition(new TypeDefinitionRecord('repository', 'Repository', 'Repositories'));
+
+        $generator = $app->make(GeneratorService::class);
+
+        $name = Str::kebab($baseName).'-repository';
+        $fileName = $context->normalizeFileName($name);
+        $filePath = $context->createFilePath($fileName);
+        $className = $filePath->getFileName();
+        $namespace = $context->buildNamespace($filePath);
+
+        if ($context->fileExists($fileName)) {
+            $this->error('❌ Repository already exists: '.$className);
+
+            return ExitCode::INVALID_ARGUMENT;
         }
 
-        // Si l'option --fully est présente, créer également les Records
-        if ($this->option('fully')) {
-            $this->createRecords($originalName);
+        $stub = $context->loadStub('repository');
+
+        $baseNamespace = $app['config']->get('directive-forge.namespace', 'App');
+        $modelShortName = $baseName;
+        $modelNamespace = $baseNamespace.'\\Models';
+
+        $stub->replace(new ReplacementRecord('namespace', $namespace));
+        $stub->replace(new ReplacementRecord('class', $className));
+        $stub->replace(new ReplacementRecord('model_short', $modelShortName));
+        $stub->replace(new ReplacementRecord('model_namespace', $modelNamespace));
+        $stub->replace(new ReplacementRecord('record_class', $recordName));
+        $stub->replace(new ReplacementRecord('filters_class', $filtersName));
+        $stub->replace(new ReplacementRecord('base_namespace', $baseNamespace));
+
+        $context->ensureDirectoryExists();
+
+        $generatorContext = $generator->generate(
+            $stub,
+            $filePath,
+            $context->getBaseDirectory()
+        );
+
+        if (! $generatorContext->isSuccess()) {
+            $this->error('❌ Failed to create Repository: '.$generatorContext->getMessage());
+
+            return ExitCode::FAILURE;
         }
+
+        $this->line("   ✅ Repository created: {$className}");
 
         return ExitCode::SUCCESS;
-    }
-
-    /**
-     * Crée les Records associés au Repository.
-     *
-     * @param  string  $repositoryName  Le nom du Repository (ex: 'user')
-     */
-    private function createRecords(string $repositoryName): void
-    {
-        // Extraire le chemin et le nom de base
-        $segments = explode('/', $repositoryName);
-        $rawClassName = array_pop($segments);
-        $subPath = ! empty($segments) ? implode('/', $segments) : '';
-
-        // Normaliser le nom de base (kebab-case -> PascalCase)
-        $normalizedBaseName = $this->toPascalCase($rawClassName);
-
-        // Nom de base sans le suffixe Repository
-        $baseClassName = str_replace('Repository', '', $normalizedBaseName);
-        $baseClassName = str_replace('Record', '', $baseClassName);
-        $baseClassName = str_replace('Filter', '', $baseClassName);
-
-        // Noms des Records
-        $recordClassName = $baseClassName.'Record';
-        $filterRecordClassName = $baseClassName.'FilterRecord';
-
-        // Chemins complets
-        $recordPath = ! empty($subPath) ? $subPath.'/'.$recordClassName : $recordClassName;
-        $filterRecordPath = ! empty($subPath) ? $subPath.'/'.$filterRecordClassName : $filterRecordClassName;
-
-        // Créer le Record principal
-        $this->createRecord($recordPath);
-
-        // Créer le FilterRecord
-        $this->createRecord($filterRecordPath);
-
-        // Afficher un message récapitulatif
-        $this->newLine();
-        $this->info('🎉 Fully created:');
-        $this->line("   Repository:   {$repositoryName}");
-        $this->line("   Record:       {$recordPath}");
-        $this->line("   FilterRecord: {$filterRecordPath}");
-    }
-
-    /**
-     * Crée un Record.
-     *
-     * @param  string  $path  Le chemin du Record
-     */
-    private function createRecord(string $path): void
-    {
-        $recordGenerator = new RecordGenerator($this->interaction);
-        $pathInfo = $this->extractPathInfo($path);
-        $recordGenerator->generate($pathInfo);
     }
 }
