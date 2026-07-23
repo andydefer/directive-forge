@@ -6,20 +6,19 @@ namespace AndyDefer\DirectiveForge\Directives;
 
 use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\DirectiveExecutionRecord;
-use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
 use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 use InvalidArgumentException;
 use Throwable;
 
-final class MakeConfigDirective extends AbstractDirective
+final class ForgeConfigDirective extends AbstractDirective
 {
     public function getSignature(): string
     {
-        return 'make-config {name}';
+        return 'forge:config {name}';
     }
 
     public function getDescription(): string
@@ -43,7 +42,7 @@ final class MakeConfigDirective extends AbstractDirective
 
     public function execute(): ExitCode
     {
-        $name = $this->argument('name');
+        $name = $this->getArgument('name');
 
         if ($name === null || $name === '') {
             $this->error('Config name is required');
@@ -52,48 +51,52 @@ final class MakeConfigDirective extends AbstractDirective
         }
 
         try {
-            $app = $this->getLaravel();
+            $app = $this->getApplication();
 
-            // ✅ Contexte pour l'implémentation
             $implContext = $app->make(DirectiveForgeContext::class)
                 ->setTypeDefinition(new TypeDefinitionRecord('config', 'Config', 'Configs'));
 
             $generator = $app->make(GeneratorService::class);
 
-            // ✅ Normaliser le nom avec suffixe si nécessaire
-            $suffix = $implContext->getSuffix();  // 'Config'
+            $suffix = $implContext->getSuffix();
             $nameWithSuffix = $name;
             if (! str_ends_with(strtolower($name), strtolower($suffix))) {
                 $nameWithSuffix = $name.'-'.$suffix;
             }
 
-            // ✅ Nom pour l'implémentation
             $fileName = $implContext->normalizeFileName($nameWithSuffix);
             $filePath = $implContext->createFilePath($fileName);
             $className = $filePath->getFileName();
             $namespace = $implContext->buildNamespace($filePath);
 
-            // ✅ Nom pour l'interface
-            $plural = $implContext->getPlural();  // 'Configs'
-            $interfaceName = strtolower($plural.'.'.$nameWithSuffix.'-interface');
-            $description = $this->argument('description') ?? 'Config for '.$name;
+            $description = $this->getCustomDataItem('description', 'Config for '.$name);
 
-            // Appeler make-interface
-            $args = new StringTypedCollection;
-            $args->add($interfaceName);
-            $args->add($description);
+            $segments = $filePath->getSegments()->toArray();
+            $baseName = $filePath->getBaseName();
+            $folderSegments = array_slice($segments, 0, -1);
 
-            $this->call(new DirectiveExecutionRecord('make-interface', $args));
+            $interfacePathParts = $folderSegments;
+            array_unshift($interfacePathParts, 'Configs');
 
-            // ✅ Créer l'implémentation
+            $interfaceDottedPath = implode('.', $interfacePathParts);
+            $interfaceFullName = $interfaceDottedPath !== ''
+                ? $interfaceDottedPath.'.'.$baseName.'-interface'
+                : $baseName.'-interface';
+
+            $this->call('forge:interface '.$interfaceFullName.' <description="'.$description.'">');
+
+            $interfaceContext = $app->make(DirectiveForgeContext::class)
+                ->setTypeDefinition(new TypeDefinitionRecord('interface', 'Interface', 'Contracts'));
+
+            $interfaceFilePath = $interfaceContext->createFilePath($interfaceFullName);
+            $interfaceClassName = $interfaceFilePath->getFileName();
+            $interfaceNamespace = $interfaceContext->buildNamespace($interfaceFilePath);
+
             if ($implContext->fileExists($fileName)) {
                 $this->error('Config already exists: '.$implContext->getFullPath($fileName));
 
                 return ExitCode::INVALID_ARGUMENT;
             }
-
-            $interfaceClassName = $className.'Interface';
-            $interfaceNamespace = str_replace('\\Configs', '\\Contracts\\Configs', $namespace);
 
             $stub = $implContext->loadStub('config');
 
@@ -101,7 +104,7 @@ final class MakeConfigDirective extends AbstractDirective
             $stub->replace(new ReplacementRecord('class', $className));
             $stub->replace(new ReplacementRecord('interface_namespace', $interfaceNamespace));
             $stub->replace(new ReplacementRecord('interface', $interfaceClassName));
-            $stub->replace(new ReplacementRecord('description', 'Config for '.$name));
+            $stub->replace(new ReplacementRecord('description', $description));
 
             $implContext->ensureDirectoryExists();
 

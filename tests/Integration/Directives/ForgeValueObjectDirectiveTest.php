@@ -6,11 +6,10 @@ namespace AndyDefer\DirectiveForge\Tests\Integration\Directives;
 
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveTestingService;
-use AndyDefer\DirectiveForge\Directives\MakeValueObjectDirective;
 use AndyDefer\DirectiveForge\Tests\IntegrationTestCase;
 use AndyDefer\PhpServices\Services\FileSystemService;
 
-final class MakeValueObjectDirectiveTest extends IntegrationTestCase
+final class ForgeValueObjectDirectiveTest extends IntegrationTestCase
 {
     private DirectiveTestingService $service;
 
@@ -20,8 +19,10 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        $this->service = new DirectiveTestingService($this->app);
-        $this->service->registerDirective(MakeValueObjectDirective::class);
+        $this->service = new DirectiveTestingService(
+            application: $this->app,
+            sourcePaths: []
+        );
 
         $this->tempDir = $this->service->getTempDir();
 
@@ -30,7 +31,8 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
         $this->app['config']->set('directive-forge.extension', 'php');
         $this->app['config']->set('directive-forge.directory_permission', 0755);
 
-        $this->createDirectories();
+        $filesystem = new FileSystemService;
+        $filesystem->ensureDirectoryExists($this->tempDir.'/app/ValueObjects');
     }
 
     protected function tearDown(): void
@@ -67,17 +69,9 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
         rmdir($dir);
     }
 
-    private function createDirectories(): void
-    {
-        $filesystem = new FileSystemService;
-        $filesystem->ensureDirectoryExists($this->tempDir.'/app/ValueObjects');
-    }
-
     public function test_creates_value_object_successfully(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'user-vo',
-        ]);
+        $response = $this->service->run('forge:vo user-vo <description="User value object">');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Value Object created successfully', $response->output);
@@ -89,13 +83,12 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('class UserVO extends AbstractValueObject', $content);
         $this->assertStringContainsString('namespace App\\ValueObjects;', $content);
         $this->assertStringContainsString('use AndyDefer\\DomainStructures\\Abstracts\\AbstractValueObject;', $content);
+        $this->assertStringContainsString('User value object', $content);
     }
 
     public function test_creates_value_object_with_subdirectories(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'posts.user-vo',
-        ]);
+        $response = $this->service->run('forge:vo posts.user-vo');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -110,9 +103,7 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
 
     public function test_creates_value_object_with_deep_subdirectories(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'api.v1.posts.user-vo',
-        ]);
+        $response = $this->service->run('forge:vo api.v1.posts.user-vo');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -129,9 +120,7 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
     {
         $this->app['config']->set('directive-forge.namespace', 'MyPackage');
 
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'user-vo',
-        ]);
+        $response = $this->service->run('forge:vo user-vo');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -145,15 +134,15 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
 
     public function test_returns_error_when_name_missing(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, []);
+        $response = $this->service->run('forge:vo');
 
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
-        $this->assertStringContainsString('Not enough arguments', $response->output);
+        $this->assertStringContainsString('Value Object name is required', $response->output);
     }
 
     public function test_returns_error_when_name_is_empty(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, ['']);
+        $response = $this->service->run('forge:vo ');
 
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Value Object name is required', $response->output);
@@ -161,11 +150,9 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
 
     public function test_returns_error_when_value_object_already_exists(): void
     {
-        // Créer une première fois
-        $this->service->run(MakeValueObjectDirective::class, ['user-vo']);
+        $this->service->run('forge:vo user-vo');
 
-        // Essayer de recréer
-        $response = $this->service->run(MakeValueObjectDirective::class, ['user-vo']);
+        $response = $this->service->run('forge:vo user-vo');
 
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Value Object already exists', $response->output);
@@ -173,9 +160,7 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
 
     public function test_handles_kebab_case_name(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'my-custom-vo',
-        ]);
+        $response = $this->service->run('forge:vo my-custom-vo');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -189,9 +174,7 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
 
     public function test_handles_snake_case_name(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'my_custom_vo',
-        ]);
+        $response = $this->service->run('forge:vo my_custom_vo');
 
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('FilePath contains invalid characters', $response->output);
@@ -204,9 +187,7 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
         $filesystem = new FileSystemService;
         $filesystem->ensureDirectoryExists($this->tempDir.'/src/ValueObjects');
 
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'user-vo',
-        ]);
+        $response = $this->service->run('forge:vo user-vo');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -218,31 +199,12 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('class UserVO extends AbstractValueObject', $content);
     }
 
-    public function test_creates_value_object_with_vo_suffix_already_present(): void
-    {
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'user-vo',
-        ]);
-
-        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
-
-        $expectedPath = $this->tempDir.'/app/ValueObjects/UserVO.php';
-        $this->assertFileExists($expectedPath);
-
-        $content = file_get_contents($expectedPath);
-        $this->assertStringContainsString('class UserVO extends AbstractValueObject', $content);
-        $this->assertStringContainsString('namespace App\\ValueObjects;', $content);
-    }
-
     public function test_creates_value_object_without_vo_suffix(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'user',
-        ]);
+        $response = $this->service->run('forge:vo user');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
-        // Le nom devrait être automatiquement complété avec -vo
         $expectedPath = $this->tempDir.'/app/ValueObjects/UserVO.php';
         $this->assertFileExists($expectedPath);
 
@@ -253,27 +215,21 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
 
     public function test_returns_success_code_on_success(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'success-test-vo',
-        ]);
+        $response = $this->service->run('forge:vo success-test-vo');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_returns_failure_code_on_error(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'invalid..name',
-        ]);
+        $response = $this->service->run('forge:vo invalid..name');
 
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
     }
 
     public function test_works_with_create_vo_alias(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'alias-test-vo',
-        ]);
+        $response = $this->service->run('create-vo alias-test-vo');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -283,9 +239,7 @@ final class MakeValueObjectDirectiveTest extends IntegrationTestCase
 
     public function test_works_with_make_value_object_alias(): void
     {
-        $response = $this->service->run(MakeValueObjectDirective::class, [
-            'alias-test-2-vo',
-        ]);
+        $response = $this->service->run('make-value-object alias-test-2-vo');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 

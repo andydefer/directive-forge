@@ -6,31 +6,31 @@ namespace AndyDefer\DirectiveForge\Directives;
 
 use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
 use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 use InvalidArgumentException;
 use Throwable;
 
-final class MakeInterfaceDirective extends AbstractDirective
+final class ForgeDataDirective extends AbstractDirective
 {
     public function getSignature(): string
     {
-        return 'make-interface {name} {description=}';
+        return 'forge:data {name}';
     }
 
     public function getDescription(): string
     {
-        return 'Create a new interface';
+        return 'Create a new data DTO class';
     }
 
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-interface');
-        $aliases->add('make-contract');
+        $aliases->add('create-data');
+        $aliases->add('make-data');
 
         return $aliases;
     }
@@ -42,20 +42,21 @@ final class MakeInterfaceDirective extends AbstractDirective
 
     public function execute(): ExitCode
     {
-        $name = $this->argument('name');
-        $description = $this->argument('description') ?? 'Interface for '.$name;
+        // Récupération de l'argument
+        $name = $this->getArgument('name');
 
         if ($name === null || $name === '') {
-            $this->error('Interface name is required');
+            $this->error('Data name is required');
 
             return ExitCode::INVALID_ARGUMENT;
         }
 
         try {
-            $app = $this->getLaravel();
+            // Récupération de l'application
+            $app = $this->getApplication();
 
             $context = $app->make(DirectiveForgeContext::class)
-                ->setTypeDefinition(new TypeDefinitionRecord('interface', 'Interface', 'Contracts'));
+                ->setTypeDefinition(new TypeDefinitionRecord('data', 'Data', 'Datas'));
 
             $generator = $app->make(GeneratorService::class);
 
@@ -65,12 +66,15 @@ final class MakeInterfaceDirective extends AbstractDirective
             $namespace = $context->buildNamespace($filePath);
 
             if ($context->fileExists($fileName)) {
-                $this->error('Interface already exists: '.$context->getFullPath($fileName));
+                $this->error('Data already exists: '.$context->getFullPath($fileName));
 
                 return ExitCode::INVALID_ARGUMENT;
             }
 
-            $stub = $context->loadStub('interface');
+            // Récupération de la description depuis les tags personnalisés
+            $description = $this->getCustomDataItem('description', 'Data DTO for '.$name);
+
+            $stub = $context->loadStub('data');
 
             $stub->replace(new ReplacementRecord('namespace', $namespace));
             $stub->replace(new ReplacementRecord('class', $className));
@@ -85,9 +89,9 @@ final class MakeInterfaceDirective extends AbstractDirective
             );
 
             if ($generatorContext->isSuccess()) {
-                $this->info('✅ Interface created successfully!');
+                $this->info('✅ Data created successfully!');
                 $this->line('   Path: '.$generatorContext->getFullPath());
-                $this->line('   Interface: '.$namespace.'\\'.$className);
+                $this->line('   Class: '.$namespace.'\\'.$className);
                 $this->line('   Mode: '.$context->getMode());
 
                 return ExitCode::SUCCESS;

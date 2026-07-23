@@ -6,11 +6,10 @@ namespace AndyDefer\DirectiveForge\Tests\Integration\Directives;
 
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveTestingService;
-use AndyDefer\DirectiveForge\Directives\MakeServiceDirective;
 use AndyDefer\DirectiveForge\Tests\IntegrationTestCase;
 use AndyDefer\PhpServices\Services\FileSystemService;
 
-final class MakeServiceDirectiveTest extends IntegrationTestCase
+final class ForgeServiceDirectiveTest extends IntegrationTestCase
 {
     private DirectiveTestingService $service;
 
@@ -22,7 +21,11 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        $this->service = new DirectiveTestingService($this->app);
+        $this->service = new DirectiveTestingService(
+            application: $this->app,
+            sourcePaths: []
+        );
+
         $this->tempDir = $this->service->getTempDir();
 
         $this->app['config']->set('directive-forge.mode', 'app');
@@ -69,9 +72,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
 
     public function test_creates_service_successfully(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'user',
-        ]);
+        $response = $this->service->run('forge:service user');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Service created successfully', $response->output);
@@ -84,11 +85,25 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('namespace App\\Services', $content);
     }
 
+    public function test_creates_service_with_description(): void
+    {
+        $response = $this->service->run('forge:service user <description="User management service">');
+
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
+        $this->assertStringContainsString('Service created successfully', $response->output);
+
+        $expectedPath = $this->tempDir.'/app/Services/UserService.php';
+        $this->assertFileExists($expectedPath);
+
+        $content = file_get_contents($expectedPath);
+        $this->assertStringContainsString('class UserService', $content);
+        $this->assertStringContainsString('namespace App\\Services', $content);
+        $this->assertStringContainsString('User management service', $content);
+    }
+
     public function test_creates_service_with_subdirectories(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'admin.user-profile',
-        ]);
+        $response = $this->service->run('forge:service admin.user-profile');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -102,9 +117,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
 
     public function test_creates_service_with_deep_subdirectories(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'api.v1.user.create',
-        ]);
+        $response = $this->service->run('forge:service api.v1.user.create');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -118,9 +131,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
 
     public function test_creates_service_with_suffix_already_present(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'user-service',
-        ]);
+        $response = $this->service->run('forge:service user-service');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -134,15 +145,15 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
 
     public function test_returns_error_when_name_missing(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, []);
+        $response = $this->service->run('forge:service');
 
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
-        $this->assertStringContainsString('Not enough arguments', $response->output);
+        $this->assertStringContainsString('Service name is required', $response->output);
     }
 
     public function test_returns_error_when_name_is_empty(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, ['']);
+        $response = $this->service->run('forge:service ');
 
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Service name is required', $response->output);
@@ -154,7 +165,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
         $this->filesystem->ensureDirectoryExists(dirname($existingPath));
         file_put_contents($existingPath, '<?php // Existing service');
 
-        $response = $this->service->run(MakeServiceDirective::class, ['existing']);
+        $response = $this->service->run('forge:service existing');
 
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Service already exists', $response->output);
@@ -162,7 +173,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
 
     public function test_returns_error_when_name_has_invalid_characters(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, ['invalid@name']);
+        $response = $this->service->run('forge:service invalid@name');
 
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('FilePath contains invalid characters', $response->output);
@@ -170,9 +181,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
 
     public function test_rejects_snake_case_name(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'my_custom_service',
-        ]);
+        $response = $this->service->run('forge:service my_custom_service');
 
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('FilePath contains invalid characters', $response->output);
@@ -182,9 +191,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
     {
         $this->app['config']->set('directive-forge.namespace', 'Custom');
 
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'custom-service',
-        ]);
+        $response = $this->service->run('forge:service custom-service');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -198,9 +205,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
 
     public function test_handles_kebab_case_name(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'my-custom-service',
-        ]);
+        $response = $this->service->run('forge:service my-custom-service');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -213,9 +218,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
 
     public function test_handles_camel_case_name(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'myCustomService',
-        ]);
+        $response = $this->service->run('forge:service myCustomService');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -233,9 +236,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
         mkdir($this->tempDir.'/src', 0777, true);
         mkdir($this->tempDir.'/src/Services', 0777, true);
 
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'lib-service',
-        ]);
+        $response = $this->service->run('forge:service lib-service');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -248,9 +249,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
 
     public function test_generates_correct_stub_content(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'test.content',
-        ]);
+        $response = $this->service->run('forge:service test.content <description="Content service for test">');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -262,14 +261,12 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('declare(strict_types=1);', $content);
         $this->assertStringContainsString('namespace App\\Services\\Test;', $content);
         $this->assertStringContainsString('class ContentService', $content);
-        $this->assertStringContainsString('Service class for ContentService', $content);
+        $this->assertStringContainsString('Content service for test', $content);
     }
 
     public function test_works_with_create_service_alias(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'alias-test',
-        ]);
+        $response = $this->service->run('create-service alias-test');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -279,9 +276,7 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
 
     public function test_works_with_make_svc_alias(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'svc-test',
-        ]);
+        $response = $this->service->run('make-svc svc-test');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
@@ -291,18 +286,14 @@ final class MakeServiceDirectiveTest extends IntegrationTestCase
 
     public function test_returns_success_code_on_success(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'success-test',
-        ]);
+        $response = $this->service->run('forge:service success-test');
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_returns_failure_code_on_error(): void
     {
-        $response = $this->service->run(MakeServiceDirective::class, [
-            'invalid..name',
-        ]);
+        $response = $this->service->run('forge:service invalid..name');
 
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
     }

@@ -6,31 +6,30 @@ namespace AndyDefer\DirectiveForge\Directives;
 
 use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
 use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 use InvalidArgumentException;
 use Throwable;
 
-final class MakeDirective extends AbstractDirective
+final class ForgeEnumDirective extends AbstractDirective
 {
     public function getSignature(): string
     {
-        return 'make-directive {name} {description=}';
+        return 'forge:enum {name}';
     }
 
     public function getDescription(): string
     {
-        return 'Create a new directive class';
+        return 'Create a new enum class';
     }
 
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-directive');
-        $aliases->add('make-cmd');
+        $aliases->add('create-enum');
 
         return $aliases;
     }
@@ -42,40 +41,39 @@ final class MakeDirective extends AbstractDirective
 
     public function execute(): ExitCode
     {
-        $name = $this->argument('name');
-        $description = $this->option('description') ?? 'Description of the directive';
+        $name = $this->getArgument('name');
 
         if ($name === null || $name === '') {
-            $this->error('Directive name is required');
+            $this->error('Enum name is required');
 
             return ExitCode::INVALID_ARGUMENT;
         }
 
         try {
-            $app = $this->getLaravel();
+            $app = $this->getApplication();
 
             $context = $app->make(DirectiveForgeContext::class)
-                ->setTypeDefinition(new TypeDefinitionRecord('directive', 'Directive', 'Directives'));
+                ->setTypeDefinition(new TypeDefinitionRecord('enum', 'Enum', 'Enums'));
 
             $generator = $app->make(GeneratorService::class);
 
-            $signature = strtolower($name);
             $fileName = $context->normalizeFileName($name);
             $filePath = $context->createFilePath($fileName);
             $className = $filePath->getFileName();
             $namespace = $context->buildNamespace($filePath);
 
             if ($context->fileExists($fileName)) {
-                $this->error('Directive already exists: '.$context->getFullPath($fileName));
+                $this->error('Enum already exists: '.$context->getFullPath($fileName));
 
                 return ExitCode::INVALID_ARGUMENT;
             }
 
-            $stub = $context->loadStub('directive');
+            $description = $this->getCustomDataItem('description', 'Enum for '.$className);
+
+            $stub = $context->loadStub('enum');
 
             $stub->replace(new ReplacementRecord('namespace', $namespace));
             $stub->replace(new ReplacementRecord('class', $className));
-            $stub->replace(new ReplacementRecord('signature', $signature));
             $stub->replace(new ReplacementRecord('description', $description));
 
             $context->ensureDirectoryExists();
@@ -87,10 +85,9 @@ final class MakeDirective extends AbstractDirective
             );
 
             if ($generatorContext->isSuccess()) {
-                $this->info('✅ Directive created successfully!');
+                $this->info('✅ Enum created successfully!');
                 $this->line('   Path: '.$generatorContext->getFullPath());
                 $this->line('   Class: '.$namespace.'\\'.$className);
-                $this->line('   Signature: '.$signature);
                 $this->line('   Mode: '.$context->getMode());
 
                 return ExitCode::SUCCESS;

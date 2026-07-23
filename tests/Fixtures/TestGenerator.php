@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Tests\Fixtures;
 
-use AndyDefer\Directive\Collections\ReplacementCollection;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
+use AndyDefer\DirectiveForge\Collections\ReplacementCollection;
 use AndyDefer\DirectiveForge\Contracts\GeneratorInterface;
 use AndyDefer\DirectiveForge\Enums\GeneratorType;
 use AndyDefer\DirectiveForge\Generators\AbstractGenerator;

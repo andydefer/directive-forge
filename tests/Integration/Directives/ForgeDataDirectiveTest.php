@@ -6,11 +6,10 @@ namespace AndyDefer\DirectiveForge\Tests\Integration\Directives;
 
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveTestingService;
-use AndyDefer\DirectiveForge\Directives\MakeDataDirective;
 use AndyDefer\DirectiveForge\Tests\IntegrationTestCase;
 use AndyDefer\PhpServices\Services\FileSystemService;
 
-final class MakeDataDirectiveTest extends IntegrationTestCase
+final class ForgeDataDirectiveTest extends IntegrationTestCase
 {
     private DirectiveTestingService $service;
 
@@ -22,7 +21,11 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        $this->service = new DirectiveTestingService($this->app);
+        $this->service = new DirectiveTestingService(
+            application: $this->app,
+            sourcePaths: []
+        );
+
         $this->tempDir = $this->service->getTempDir();
 
         $this->app['config']->set('directive-forge.mode', 'app');
@@ -69,13 +72,14 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
     public function test_creates_data_successfully(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'user',
-        ]);
+        // Arrange: Prepare the directive execution
+        $response = $this->service->run('forge:data user');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Data created successfully', $response->output);
 
+        // Assert: Verify the file was created with correct content
         $expectedPath = $this->tempDir.'/app/Datas/UserData.php';
         $this->assertFileExists($expectedPath);
 
@@ -87,14 +91,14 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
     public function test_creates_data_with_description(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'user-profile',
-            '--description=User profile data transfer object',
-        ]);
+        // Arrange: Prepare the directive execution with description using custom tag
+        $response = $this->service->run('forge:data user-profile <description="User profile data transfer object">');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Data created successfully', $response->output);
 
+        // Assert: Verify the file was created with description in content
         $expectedPath = $this->tempDir.'/app/Datas/UserProfileData.php';
         $this->assertFileExists($expectedPath);
 
@@ -107,12 +111,13 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
     public function test_creates_data_with_subdirectories(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'admin.user-profile',
-        ]);
+        // Arrange: Prepare the directive execution with subdirectory
+        $response = $this->service->run('forge:data admin.user-profile');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created in the correct subdirectory
         $expectedPath = $this->tempDir.'/app/Datas/Admin/UserProfileData.php';
         $this->assertFileExists($expectedPath);
 
@@ -124,12 +129,13 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
     public function test_creates_data_with_deep_subdirectories(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'api.v1.user.create',
-        ]);
+        // Arrange: Prepare the directive execution with deep subdirectory
+        $response = $this->service->run('forge:data api.v1.user.create');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created in the correct deep subdirectory
         $expectedPath = $this->tempDir.'/app/Datas/Api/V1/User/CreateData.php';
         $this->assertFileExists($expectedPath);
 
@@ -141,12 +147,13 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
     public function test_creates_data_with_suffix_already_present(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'user-data',
-        ]);
+        // Arrange: Prepare the directive execution with name already containing suffix
+        $response = $this->service->run('forge:data user-data');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created without duplicating suffix
         $expectedPath = $this->tempDir.'/app/Datas/UserData.php';
         $this->assertFileExists($expectedPath);
 
@@ -157,12 +164,13 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
     public function test_creates_data_with_suffix_in_subdirectory(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'admin.user-profile-data',
-        ]);
+        // Arrange: Prepare the directive execution with subdirectory and suffix
+        $response = $this->service->run('forge:data admin.user-profile-data');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created in the correct subdirectory
         $expectedPath = $this->tempDir.'/app/Datas/Admin/UserProfileData.php';
         $this->assertFileExists($expectedPath);
 
@@ -173,50 +181,61 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
     public function test_returns_error_when_name_missing(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, []);
+        // Act: Execute the directive without providing a name
+        $response = $this->service->run('forge:data');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
-        $this->assertStringContainsString('Not enough arguments', $response->output);
+        $this->assertStringContainsString('Data name is required', $response->output);
     }
 
     public function test_returns_error_when_name_is_empty(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, ['']);
+        // Act: Execute the directive with an empty name
+        $response = $this->service->run('forge:data ');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Data name is required', $response->output);
     }
 
     public function test_returns_error_when_data_already_exists(): void
     {
+        // Arrange: Create an existing data file
         $existingPath = $this->tempDir.'/app/Datas/ExistingData.php';
         $this->filesystem->ensureDirectoryExists(dirname($existingPath));
         file_put_contents($existingPath, '<?php // Existing data');
 
-        $response = $this->service->run(MakeDataDirective::class, ['existing']);
+        // Act: Attempt to create a data that already exists
+        $response = $this->service->run('forge:data existing');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Data already exists', $response->output);
     }
 
     public function test_returns_error_when_name_has_invalid_characters(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, ['invalid@name']);
+        // Act: Attempt to create a data with invalid characters
+        $response = $this->service->run('forge:data invalid@name');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('FilePath contains invalid characters', $response->output);
     }
 
     public function test_uses_custom_namespace_from_config(): void
     {
+        // Arrange: Change the namespace configuration
         $this->app['config']->set('directive-forge.namespace', 'Custom\\Dto');
 
-        $response = $this->service->run(MakeDataDirective::class, [
-            'custom-data',
-        ]);
+        // Act: Execute the directive with custom namespace
+        $response = $this->service->run('forge:data custom-data');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created with the custom namespace
         $expectedPath = $this->tempDir.'/app/Datas/CustomData.php';
         $this->assertFileExists($expectedPath);
 
@@ -227,12 +246,13 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
     public function test_handles_kebab_case_name(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'my-custom-data',
-        ]);
+        // Arrange: Prepare the directive execution with kebab case
+        $response = $this->service->run('forge:data my-custom-data');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created with PascalCase class name
         $expectedPath = $this->tempDir.'/app/Datas/MyCustomData.php';
         $this->assertFileExists($expectedPath);
 
@@ -242,12 +262,13 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
     public function test_handles_camel_case_name(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'myCustomData',
-        ]);
+        // Arrange: Prepare the directive execution with camel case
+        $response = $this->service->run('forge:data myCustomData');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created with the same name
         $expectedPath = $this->tempDir.'/app/Datas/MyCustomData.php';
         $this->assertFileExists($expectedPath);
 
@@ -257,27 +278,30 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
     public function test_handles_snake_case_name(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'my_custom_data',
-        ]);
+        // Act: Attempt to create a data with snake case (invalid)
+        $response = $this->service->run('forge:data my_custom_data');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('FilePath contains invalid characters', $response->output);
     }
 
     public function test_creates_data_in_src_when_mode_library(): void
     {
+        // Arrange: Change the mode to library
         $this->app['config']->set('directive-forge.mode', 'library');
 
+        // Create the src directory structure
         mkdir($this->tempDir.'/src', 0777, true);
         mkdir($this->tempDir.'/src/Datas', 0777, true);
 
-        $response = $this->service->run(MakeDataDirective::class, [
-            'lib-data',
-        ]);
+        // Act: Execute the directive in library mode
+        $response = $this->service->run('forge:data lib-data');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created in the src directory
         $expectedPath = $this->tempDir.'/src/Datas/LibData.php';
         $this->assertFileExists($expectedPath);
 
@@ -288,13 +312,13 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
 
     public function test_generates_correct_stub_content(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'test.content',
-            '--description=My custom description',
-        ]);
+        // Arrange: Prepare the directive execution with description using custom tag
+        $response = $this->service->run('forge:data test.content <description="My custom description">');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created with correct stub content
         $expectedPath = $this->tempDir.'/app/Datas/Test/ContentData.php';
         $this->assertFileExists($expectedPath);
 
@@ -307,45 +331,47 @@ final class MakeDataDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('My custom description', $content);
     }
 
-    public function test_works_with_create_data_alias(): void
+    public function test_works_with_alias(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'alias-test',
-        ]);
+        // Act: Execute the directive using the alias
+        $response = $this->service->run('create-data alias-test');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created
         $expectedPath = $this->tempDir.'/app/Datas/AliasTestData.php';
         $this->assertFileExists($expectedPath);
     }
 
     public function test_works_with_make_dto_alias(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'dto-test',
-        ]);
+        // Act: Execute the directive using the alias
+        $response = $this->service->run('make-data dto-test');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created
         $expectedPath = $this->tempDir.'/app/Datas/DtoTestData.php';
         $this->assertFileExists($expectedPath);
     }
 
     public function test_returns_success_code_on_success(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'success-test',
-        ]);
+        // Act: Execute the directive successfully
+        $response = $this->service->run('forge:data success-test');
 
+        // Assert: Verify the success exit code
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_returns_failure_code_on_error(): void
     {
-        $response = $this->service->run(MakeDataDirective::class, [
-            'invalid..name',
-        ]);
+        // Act: Execute the directive with invalid input
+        $response = $this->service->run('forge:data invalid..name');
 
+        // Assert: Verify the failure exit code
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
     }
 }

@@ -6,8 +6,8 @@ namespace AndyDefer\DirectiveForge\Directives;
 
 use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
 use AndyDefer\DirectiveForge\ValueObjects\FilePathVO;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
@@ -16,11 +16,11 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
 
-final class MakeValueObjectDirective extends AbstractDirective
+final class ForgeValueObjectDirective extends AbstractDirective
 {
     public function getSignature(): string
     {
-        return 'make-vo {name}';
+        return 'forge:vo {name}';
     }
 
     public function getDescription(): string
@@ -44,7 +44,7 @@ final class MakeValueObjectDirective extends AbstractDirective
 
     public function execute(): ExitCode
     {
-        $name = $this->argument('name');
+        $name = $this->getArgument('name');
 
         if ($name === null || $name === '') {
             $this->error('Value Object name is required');
@@ -53,22 +53,18 @@ final class MakeValueObjectDirective extends AbstractDirective
         }
 
         try {
-            $app = $this->getLaravel();
+            $app = $this->getApplication();
 
-            // 🔧 CORRECTION : Gérer correctement les sous-dossiers
-            // posts.user-vo -> Posts/UserVO
             $baseName = $name;
             $hasVoSuffix = str_ends_with(strtolower($name), '-vo');
 
             if ($hasVoSuffix) {
-                $baseName = substr($name, 0, -3); // Enlever '-vo'
+                $baseName = substr($name, 0, -3);
             }
 
-            // 🔧 CORRECTION : Utiliser FilePathVO pour extraire les dossiers
             $filePath = new FilePathVO($name);
             $folders = $filePath->getFolders()->toArray();
 
-            // 🔧 CORRECTION : Le nom de la classe = dernier segment + VO
             $segments = explode('.', $baseName);
             $lastSegment = end($segments);
             $className = Str::studly($lastSegment).'VO';
@@ -76,7 +72,6 @@ final class MakeValueObjectDirective extends AbstractDirective
             $context = $app->make(DirectiveForgeContext::class)
                 ->setTypeDefinition(new TypeDefinitionRecord('vo', 'VO', 'ValueObjects'));
 
-            // Construire le chemin complet
             $baseDir = $context->getBaseDirectory();
             $fullPath = $baseDir;
             if (! empty($folders)) {
@@ -84,13 +79,13 @@ final class MakeValueObjectDirective extends AbstractDirective
             }
             $fullPath .= '/'.$className.'.php';
 
-            // Construire le namespace
             $namespace = $context->getBaseNamespace();
             if (! empty($folders)) {
                 $namespace .= '\\'.implode('\\', $folders);
             }
 
-            // Vérifier si le fichier existe
+            $description = $this->getCustomDataItem('description', 'Value Object for '.$className);
+
             $filesystem = $app->make(FileSystemService::class);
             if ($filesystem->exists($fullPath)) {
                 $this->error('Value Object already exists: '.$fullPath);
@@ -102,6 +97,7 @@ final class MakeValueObjectDirective extends AbstractDirective
 
             $stub->replace(new ReplacementRecord('namespace', $namespace));
             $stub->replace(new ReplacementRecord('class', $className));
+            $stub->replace(new ReplacementRecord('description', $description));
 
             $filesystem->ensureDirectoryExists(dirname($fullPath));
 

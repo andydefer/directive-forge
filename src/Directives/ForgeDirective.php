@@ -6,31 +6,31 @@ namespace AndyDefer\DirectiveForge\Directives;
 
 use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
 use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 use InvalidArgumentException;
 use Throwable;
 
-final class MakeDataDirective extends AbstractDirective
+final class ForgeDirective extends AbstractDirective
 {
     public function getSignature(): string
     {
-        return 'make-data {name} {description=}';
+        return 'forge:directive {name}';
     }
 
     public function getDescription(): string
     {
-        return 'Create a new data DTO class';
+        return 'Create a new directive class';
     }
 
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
-        $aliases->add('create-data');
-        $aliases->add('make-dto');
+        $aliases->add('create-directive');
+        $aliases->add('make-cmd');
 
         return $aliases;
     }
@@ -42,38 +42,44 @@ final class MakeDataDirective extends AbstractDirective
 
     public function execute(): ExitCode
     {
-        $name = $this->argument('name');
-        $description = $this->option('description') ?? 'Data DTO for '.$name;
+        // Récupération des arguments
+        $name = $this->getArgument('name');
 
         if ($name === null || $name === '') {
-            $this->error('Data name is required');
+            $this->error('Directive name is required');
 
             return ExitCode::INVALID_ARGUMENT;
         }
 
         try {
-            $app = $this->getLaravel();
+            // Récupération de l'application
+            $app = $this->getApplication();
 
             $context = $app->make(DirectiveForgeContext::class)
-                ->setTypeDefinition(new TypeDefinitionRecord('data', 'Data', 'Datas'));
+                ->setTypeDefinition(new TypeDefinitionRecord('directive', 'Directive', 'Directives'));
 
             $generator = $app->make(GeneratorService::class);
 
+            $signature = strtolower($name);
             $fileName = $context->normalizeFileName($name);
             $filePath = $context->createFilePath($fileName);
             $className = $filePath->getFileName();
             $namespace = $context->buildNamespace($filePath);
 
             if ($context->fileExists($fileName)) {
-                $this->error('Data already exists: '.$context->getFullPath($fileName));
+                $this->error('Directive already exists: '.$context->getFullPath($fileName));
 
                 return ExitCode::INVALID_ARGUMENT;
             }
 
-            $stub = $context->loadStub('data');
+            // Récupération de la description depuis les tags personnalisés
+            $description = $this->getCustomDataItem('description', 'Description of the directive');
+
+            $stub = $context->loadStub('directive');
 
             $stub->replace(new ReplacementRecord('namespace', $namespace));
             $stub->replace(new ReplacementRecord('class', $className));
+            $stub->replace(new ReplacementRecord('signature', $signature));
             $stub->replace(new ReplacementRecord('description', $description));
 
             $context->ensureDirectoryExists();
@@ -85,9 +91,10 @@ final class MakeDataDirective extends AbstractDirective
             );
 
             if ($generatorContext->isSuccess()) {
-                $this->info('✅ Data created successfully!');
+                $this->info('✅ Directive created successfully!');
                 $this->line('   Path: '.$generatorContext->getFullPath());
                 $this->line('   Class: '.$namespace.'\\'.$className);
+                $this->line('   Signature: '.$signature);
                 $this->line('   Mode: '.$context->getMode());
 
                 return ExitCode::SUCCESS;

@@ -6,20 +6,19 @@ namespace AndyDefer\DirectiveForge\Directives;
 
 use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\DirectiveExecutionRecord;
-use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
 use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 use InvalidArgumentException;
 use Throwable;
 
-final class MakeActionDirective extends AbstractDirective
+final class ForgeActionDirective extends AbstractDirective
 {
     public function getSignature(): string
     {
-        return 'make-action {name} {--supfile}';
+        return 'forge:action {name} ::supfile->[r,request,a,all]=_';
     }
 
     public function getDescription(): string
@@ -43,8 +42,7 @@ final class MakeActionDirective extends AbstractDirective
 
     public function execute(): ExitCode
     {
-        $name = $this->argument('name');
-        $supfile = $this->option('supfile');
+        $name = $this->getArgument('name');
 
         if ($name === null || $name === '') {
             $this->error('Action name is required');
@@ -53,35 +51,44 @@ final class MakeActionDirective extends AbstractDirective
         }
 
         try {
-            $app = $this->getLaravel();
+            $app = $this->getApplication();
 
             $context = $app->make(DirectiveForgeContext::class)
                 ->setTypeDefinition(new TypeDefinitionRecord('action', 'Action', 'Actions'));
 
             $generator = $app->make(GeneratorService::class);
 
-            // Gestion des fichiers supplémentaires
+            $supfile = $this->getArgument('supfile');
             $baseName = preg_replace('/-?action$/i', '', $name);
 
-            if ($supfile !== null && $supfile !== false) {
-                // Cas -a : Créer une request avec record (make-request --r)
-                if ($supfile === 'a') {
-                    $requestName = $baseName.'-request';
-                    $args = new StringTypedCollection;
-                    $args->add($requestName);
-                    $args->add('--r');  // Crée le record associé
-                    $this->call(new DirectiveExecutionRecord('make-request', $args));
+            if ($supfile !== null) {
+                $requestName = $baseName.'-request';
+                $query = 'forge:request '.$requestName;
+
+                if ($supfile === 'a' || $supfile === 'all') {
+                    $query .= ' --r';
                 }
-                // Cas -r : Créer une request seule (sans record)
-                elseif ($supfile === 'r') {
-                    $requestName = $baseName.'-request';
-                    $args = new StringTypedCollection;
-                    $args->add($requestName);
-                    $this->call(new DirectiveExecutionRecord('make-request', $args));
+
+                ob_start();
+                $kernel = $this->getKernel();
+                $exitCode = $kernel->runSignature($query);
+                ob_get_clean();
+
+                if ($exitCode === ExitCode::SUCCESS) {
+                    if ($supfile === 'a' || $supfile === 'all') {
+                        $this->line('   ✅ Request + Record created successfully!');
+                    } else {
+                        $this->line('   ✅ Request created successfully!');
+                    }
+                } else {
+                    if ($supfile === 'a' || $supfile === 'all') {
+                        $this->line('   ℹ️ Request + Record already exists, skipping creation');
+                    } else {
+                        $this->line('   ℹ️ Request already exists, skipping creation');
+                    }
                 }
             }
 
-            // Création de l'action
             $suffix = $context->getSuffix();
             $nameWithSuffix = $name;
             if (! str_ends_with(strtolower($name), strtolower($suffix))) {
@@ -99,10 +106,13 @@ final class MakeActionDirective extends AbstractDirective
                 return ExitCode::INVALID_ARGUMENT;
             }
 
+            $description = $this->getCustomDataItem('description', 'Action for '.$name);
+
             $stub = $context->loadStub('action');
 
             $stub->replace(new ReplacementRecord('namespace', $namespace));
             $stub->replace(new ReplacementRecord('class', $className));
+            $stub->replace(new ReplacementRecord('description', $description));
 
             $context->ensureDirectoryExists();
 
@@ -117,12 +127,6 @@ final class MakeActionDirective extends AbstractDirective
                 $this->line('   Path: '.$generatorContext->getFullPath());
                 $this->line('   Class: '.$namespace.'\\'.$className);
                 $this->line('   Mode: '.$context->getMode());
-
-                if ($supfile === 'a') {
-                    $this->line('   ✅ Request + Record created successfully!');
-                } elseif ($supfile === 'r') {
-                    $this->line('   ✅ Request created successfully!');
-                }
 
                 return ExitCode::SUCCESS;
             }

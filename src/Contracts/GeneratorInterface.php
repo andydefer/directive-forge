@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Contracts;
 
-use AndyDefer\Directive\Collections\ReplacementCollection;
 use AndyDefer\Directive\Enums\ExitCode;
+use AndyDefer\DirectiveForge\Collections\ReplacementCollection;
 use AndyDefer\DirectiveForge\ValueObjects\PathInfo;
 
 /**

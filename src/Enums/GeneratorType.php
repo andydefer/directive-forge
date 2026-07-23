@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Enums;
 
-use AndyDefer\Directive\Collections\ReplacementCollection;
-use AndyDefer\Directive\Records\ReplacementRecord;
+use AndyDefer\DirectiveForge\Collections\ReplacementCollection;
 use AndyDefer\DirectiveForge\Generators\ActionGenerator;
 use AndyDefer\DirectiveForge\Generators\ConfigGenerator;
 use AndyDefer\DirectiveForge\Generators\DataGenerator;
@@ -18,6 +17,7 @@ use AndyDefer\DirectiveForge\Generators\TaskGenerator;
 use AndyDefer\DirectiveForge\Generators\TypedCollectionGenerator;
 use AndyDefer\DirectiveForge\Generators\ValueObjectGenerator;
 use AndyDefer\DirectiveForge\Records\GeneratorConfig;
+use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 
 enum GeneratorType: string
 {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Tests\Unit\Services;
 
-use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Enums\ExtensionType;
+use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DirectiveForge\ValueObjects\FilePathVO;
 use AndyDefer\DirectiveForge\ValueObjects\StubVO;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Records;
 
-use AndyDefer\Directive\Collections\ReplacementCollection;
+use AndyDefer\DirectiveForge\Collections\ReplacementCollection;
 use AndyDefer\DirectiveForge\Enums\GeneratorType;
 use AndyDefer\DomainStructures\Abstracts\AbstractRecord;
 

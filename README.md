@@ -413,7 +413,6 @@ Directive Forge gère intelligemment les conversions de noms :
 
 | Composant | Description |
 |-----------|-------------|
-| `BaseDirective` | Directive abstraite avec parsing et normalisation des chemins |
 | `AbstractGenerator` | Générateur de base pour la création de fichiers |
 | `GeneratorType` | Enum définissant toutes les configurations des générateurs |
 | `PathInfo` | Objet de valeur pour la gestion des chemins et namespaces |

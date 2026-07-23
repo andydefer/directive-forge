@@ -6,10 +6,8 @@ namespace AndyDefer\DirectiveForge\Directives;
 
 use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\DirectiveExecutionRecord;
-use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
-use AndyDefer\DirectiveForge\Enums\SupportedType;
+use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
 use AndyDefer\DirectiveForge\ValueObjects\FilePathVO;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
@@ -18,16 +16,27 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
 
-final class MakeTypedCollectionDirective extends AbstractDirective
+final class ForgeTypedCollectionDirective extends AbstractDirective
 {
+    private const TYPE_MAP = [
+        'vo' => ['folder' => 'ValueObjects', 'suffix' => 'vo'],
+        'value-object' => ['folder' => 'ValueObjects', 'suffix' => 'vo'],
+        'data' => ['folder' => 'Datas', 'suffix' => 'data'],
+        'd' => ['folder' => 'Datas', 'suffix' => 'data'],
+        'record' => ['folder' => 'Records', 'suffix' => 'record'],
+        'r' => ['folder' => 'Records', 'suffix' => 'record'],
+        'enum' => ['folder' => 'Enums', 'suffix' => 'enum'],
+        'e' => ['folder' => 'Enums', 'suffix' => 'enum'],
+    ];
+
     public function getSignature(): string
     {
-        return 'make-typed-collection {item}';
+        return 'forge:typed-collection {name} ::type->[vo,value-object,data,d,record,r,enum,e]=*';
     }
 
     public function getDescription(): string
     {
-        return 'Create a typed collection for an item type';
+        return 'Create a typed collection for an item type (VO, Data, Record, or Enum)';
     }
 
     public function getAliases(): StringTypedCollection
@@ -46,30 +55,40 @@ final class MakeTypedCollectionDirective extends AbstractDirective
 
     public function execute(): ExitCode
     {
-        $item = $this->argument('item');
+        $name = $this->getArgument('name');
+        $type = $this->getEnum('type');
 
-        if ($item === null || $item === '') {
-            $this->error('Item type is required');
+        if ($name === null || $name === '') {
+            $this->error('Item name is required');
+
+            return ExitCode::INVALID_ARGUMENT;
+        }
+
+        if ($type === null || ! isset(self::TYPE_MAP[$type])) {
+            $this->error('Type is required. Use "vo", "value-object", "data", "d", "record", "r", "enum", or "e"');
 
             return ExitCode::INVALID_ARGUMENT;
         }
 
         try {
-            $app = $this->getLaravel();
+            $typeConfig = self::TYPE_MAP[$type];
+            $suffix = $typeConfig['suffix'];
 
-            // Extraire le suffixe (tout après le dernier tiret)
-            $parts = explode('-', $item);
-            $suffix = end($parts);
+            $directive = 'forge:'.$suffix;
+            $query = $directive.' '.$name;
 
-            // 1. Créer le type avec make-{suffix}
-            $directive = 'make-'.$suffix;
-            $args = new StringTypedCollection;
-            $args->add($item);
+            ob_start();
+            $kernel = $this->getKernel();
+            $exitCode = $kernel->runSignature($query);
+            $output = ob_get_clean();
 
-            $this->call(new DirectiveExecutionRecord($directive, $args));
+            if ($exitCode === ExitCode::SUCCESS) {
+                $this->line('   ✅ '.ucfirst($suffix).' created successfully!');
+            } else {
+                $this->line('   ℹ️ '.ucfirst($suffix).' already exists, skipping creation');
+            }
 
-            // 2. Créer la collection
-            $collectionCreated = $this->createCollection($item, $suffix);
+            $collectionCreated = $this->createCollection($name, $suffix);
             if ($collectionCreated === ExitCode::FAILURE) {
                 return ExitCode::FAILURE;
             }
@@ -89,54 +108,63 @@ final class MakeTypedCollectionDirective extends AbstractDirective
         }
     }
 
-    private function createCollection(string $item, string $suffix): ExitCode
+    private function createCollection(string $name, string $suffix): ExitCode
     {
-        $app = $this->getLaravel();
+        $app = $this->getApplication();
 
-        // Extraire le nom de base (sans le suffixe)
-        $baseName = substr($item, 0, -strlen($suffix) - 1);
+        $baseName = $name;
+        $hasSuffix = str_ends_with(strtolower($name), '-'.$suffix);
 
-        // 🔧 CORRECTION : Extraire le dernier segment pour le nom du type
+        if ($hasSuffix) {
+            $baseName = substr($name, 0, -strlen($suffix) - 1);
+        }
+
         $baseParts = explode('.', $baseName);
         $lastSegment = end($baseParts);
 
-        // 🔧 CORRECTION : Construire le nom de la collection correctement
-        // Pour les sous-dossiers, on garde la structure mais on utilise le bon nom
-        if ($suffix === 'vo') {
-            $typeName = Str::studly($lastSegment).'VO';
-            $collectionClassName = Str::studly($lastSegment).'VOCollection';
-        } else {
-            $typeName = Str::studly($lastSegment).Str::studly($suffix);
-            $collectionClassName = Str::studly($lastSegment).Str::studly($suffix).'Collection';
-        }
+        [$typeName, $collectionClassName] = match ($suffix) {
+            'vo' => [
+                Str::studly($lastSegment).'VO',
+                Str::studly($lastSegment).'VOCollection',
+            ],
+            'data' => [
+                Str::studly($lastSegment).'Data',
+                Str::studly($lastSegment).'DataCollection',
+            ],
+            'record' => [
+                Str::studly($lastSegment).'Record',
+                Str::studly($lastSegment).'RecordCollection',
+            ],
+            'enum' => [
+                Str::studly($lastSegment).'Enum',
+                Str::studly($lastSegment).'EnumCollection',
+            ],
+            default => [
+                Str::studly($lastSegment).Str::studly($suffix),
+                Str::studly($lastSegment).Str::studly($suffix).'Collection',
+            ],
+        };
 
-        // 🔧 CORRECTION : Construire le chemin avec FilePathVO
-        // Pour les dossiers, on utilise le baseName complet
         $collectionRaw = $baseName.'-'.$suffix.'-collection';
 
         $context = $app->make(DirectiveForgeContext::class)
             ->setTypeDefinition(new TypeDefinitionRecord('collection', 'Collection', 'Collections'));
 
-        // Utiliser FilePathVO pour extraire les dossiers
         $filePath = new FilePathVO($collectionRaw);
         $folders = $filePath->getFolders()->toArray();
 
-        // Construire le chemin complet
         $baseDir = $context->getBaseDirectory();
         $fullPath = $baseDir;
         if (! empty($folders)) {
             $fullPath .= '/'.implode('/', $folders);
         }
-        // 🔧 CORRECTION : Utiliser le bon nom de classe pour le fichier
         $fullPath .= '/'.$collectionClassName.'.php';
 
-        // Construire le namespace
         $namespace = $context->getBaseNamespace();
         if (! empty($folders)) {
             $namespace .= '\\'.implode('\\', $folders);
         }
 
-        // Vérifier si le fichier existe
         $filesystem = $app->make(FileSystemService::class);
         if ($filesystem->exists($fullPath)) {
             $this->error('❌ Collection already exists: '.$collectionClassName);
@@ -147,16 +175,16 @@ final class MakeTypedCollectionDirective extends AbstractDirective
         $typeFolder = $this->getTypeFolder($suffix);
         $baseNamespace = $app['config']->get('directive-forge.namespace', 'App');
 
-        // Dossiers du type (tous sauf le dernier segment)
         $folderParts = array_slice($baseParts, 0, -1);
         $typePath = implode('\\', array_map(fn ($p) => Str::studly($p), $folderParts));
 
-        // Construire le FQCN du type
         if (! empty($typePath)) {
             $typeFullClass = $baseNamespace.'\\'.$typeFolder.'\\'.$typePath.'\\'.$typeName;
         } else {
             $typeFullClass = $baseNamespace.'\\'.$typeFolder.'\\'.$typeName;
         }
+
+        $description = $this->getCustomDataItem('description', 'Collection for '.$typeName);
 
         $stub = $context->loadStub('typed-collection');
 
@@ -164,6 +192,7 @@ final class MakeTypedCollectionDirective extends AbstractDirective
         $stub->replace(new ReplacementRecord('class', $collectionClassName));
         $stub->replace(new ReplacementRecord('type', $typeFullClass));
         $stub->replace(new ReplacementRecord('type_short', $typeName));
+        $stub->replace(new ReplacementRecord('description', $description));
 
         $filesystem->ensureDirectoryExists(dirname($fullPath));
 
@@ -177,8 +206,12 @@ final class MakeTypedCollectionDirective extends AbstractDirective
 
     private function getTypeFolder(string $suffix): string
     {
-        $type = SupportedType::fromType($suffix);
-
-        return $type->getFolder();
+        return match ($suffix) {
+            'vo' => 'ValueObjects',
+            'data' => 'Datas',
+            'record' => 'Records',
+            'enum' => 'Enums',
+            default => ucfirst($suffix).'s',
+        };
     }
 }

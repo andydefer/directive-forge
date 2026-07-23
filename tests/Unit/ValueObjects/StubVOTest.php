@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Tests\Unit\ValueObjects;
 
-use AndyDefer\Directive\Collections\ReplacementCollection;
-use AndyDefer\Directive\Records\ReplacementRecord;
+use AndyDefer\DirectiveForge\Collections\ReplacementCollection;
+use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\ValueObjects\StubVO;
 use AndyDefer\DomainStructures\Abstracts\AbstractValueObject;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;

@@ -6,11 +6,10 @@ namespace AndyDefer\DirectiveForge\Tests\Integration\Directives;
 
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveTestingService;
-use AndyDefer\DirectiveForge\Directives\MakeDirective;
 use AndyDefer\DirectiveForge\Tests\IntegrationTestCase;
 use AndyDefer\PhpServices\Services\FileSystemService;
 
-final class MakeDirectiveTest extends IntegrationTestCase
+final class ForgeDirectiveTest extends IntegrationTestCase
 {
     private DirectiveTestingService $service;
 
@@ -22,7 +21,11 @@ final class MakeDirectiveTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        $this->service = new DirectiveTestingService($this->app);
+        $this->service = new DirectiveTestingService(
+            application: $this->app,
+            sourcePaths: []
+        );
+
         $this->tempDir = $this->service->getTempDir();
 
         $this->app['config']->set('directive-forge.mode', 'app');
@@ -69,14 +72,14 @@ final class MakeDirectiveTest extends IntegrationTestCase
 
     public function test_creates_file_successfully(): void
     {
-        $response = $this->service->run(MakeDirective::class, [
-            'test-command',
-            '--description=Test description',
-        ]);
+        // Arrange: Prepare the directive execution
+        $response = $this->service->run('forge:directive test-command <description="Test description">');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Directive created successfully', $response->output);
 
+        // Assert: Verify the file was created with correct content
         $expectedPath = $this->tempDir.'/app/Directives/TestCommandDirective.php';
         $this->assertFileExists($expectedPath);
 
@@ -89,13 +92,13 @@ final class MakeDirectiveTest extends IntegrationTestCase
 
     public function test_creates_file_with_subdirectories(): void
     {
-        $response = $this->service->run(MakeDirective::class, [
-            'users.hello-world',
-            '--description=Hello world command',
-        ]);
+        // Arrange: Prepare the directive execution with subdirectory
+        $response = $this->service->run('forge:directive users.hello-world <description="Hello world command">');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created in the correct subdirectory
         $expectedPath = $this->tempDir.'/app/Directives/Users/HelloWorldDirective.php';
         $this->assertFileExists($expectedPath);
 
@@ -108,13 +111,13 @@ final class MakeDirectiveTest extends IntegrationTestCase
 
     public function test_creates_file_with_deep_subdirectories(): void
     {
-        $response = $this->service->run(MakeDirective::class, [
-            'api.v1.admin.user-management',
-            '--description=Admin user management',
-        ]);
+        // Arrange: Prepare the directive execution with deep subdirectory
+        $response = $this->service->run('forge:directive api.v1.admin.user-management <description="Admin user management">');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created in the correct deep subdirectory
         $expectedPath = $this->tempDir.'/app/Directives/Api/V1/Admin/UserManagementDirective.php';
         $this->assertFileExists($expectedPath);
 
@@ -126,51 +129,61 @@ final class MakeDirectiveTest extends IntegrationTestCase
 
     public function test_returns_error_when_name_missing(): void
     {
-        $response = $this->service->run(MakeDirective::class, []);
+        // Act: Execute the directive without providing a name
+        $response = $this->service->run('forge:directive');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
-        $this->assertStringContainsString('Not enough arguments', $response->output);
+        $this->assertStringContainsString('Directive name is required', $response->output);
     }
 
     public function test_returns_error_when_file_already_exists(): void
     {
+        // Arrange: Create an existing file
         $existingPath = $this->tempDir.'/app/Directives/ExistingDirective.php';
         $this->filesystem->ensureDirectoryExists(dirname($existingPath));
         file_put_contents($existingPath, '<?php // Existing file');
 
-        $response = $this->service->run(MakeDirective::class, ['existing']);
+        // Act: Attempt to create a directive that already exists
+        $response = $this->service->run('forge:directive existing');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Directive already exists', $response->output);
     }
 
     public function test_returns_error_when_name_has_invalid_characters(): void
     {
-        $response = $this->service->run(MakeDirective::class, ['invalid@name']);
+        // Act: Attempt to create a directive with invalid characters
+        $response = $this->service->run('forge:directive invalid@name');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('FilePath contains invalid characters', $response->output);
     }
 
     public function test_returns_error_when_name_is_empty(): void
     {
-        $response = $this->service->run(MakeDirective::class, ['']);
+        // Act: Execute the directive with an empty name
+        $response = $this->service->run('forge:directive ');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Directive name is required', $response->output);
     }
 
     public function test_uses_custom_namespace_from_config(): void
     {
+        // Arrange: Change the namespace configuration
         $this->app['config']->set('directive-forge.namespace', 'Hello');
 
-        $response = $this->service->run(MakeDirective::class, [
-            'hello-command',
-            '--description=Hello description',
-        ]);
+        // Act: Execute the directive with custom namespace
+        $response = $this->service->run('forge:directive hello-command <description="Hello description">');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created with the custom namespace
         $expectedPath = $this->tempDir.'/app/Directives/HelloCommandDirective.php';
         $this->assertFileExists($expectedPath);
 
@@ -180,12 +193,13 @@ final class MakeDirectiveTest extends IntegrationTestCase
 
     public function test_uses_default_description_when_not_provided(): void
     {
-        $response = $this->service->run(MakeDirective::class, [
-            'default-desc',
-        ]);
+        // Act: Execute the directive without description
+        $response = $this->service->run('forge:directive default-desc');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created with default description
         $expectedPath = $this->tempDir.'/app/Directives/DefaultDescDirective.php';
         $this->assertFileExists($expectedPath);
 
@@ -195,12 +209,13 @@ final class MakeDirectiveTest extends IntegrationTestCase
 
     public function test_handles_kebab_case_name(): void
     {
-        $response = $this->service->run(MakeDirective::class, [
-            'my-custom-command',
-        ]);
+        // Arrange: Prepare the directive execution with kebab case
+        $response = $this->service->run('forge:directive my-custom-command');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created with PascalCase class name and kebab signature
         $expectedPath = $this->tempDir.'/app/Directives/MyCustomCommandDirective.php';
         $this->assertFileExists($expectedPath);
 
@@ -211,12 +226,13 @@ final class MakeDirectiveTest extends IntegrationTestCase
 
     public function test_handles_camel_case_name(): void
     {
-        $response = $this->service->run(MakeDirective::class, [
-            'myCustomCommand',
-        ]);
+        // Arrange: Prepare the directive execution with camel case
+        $response = $this->service->run('forge:directive myCustomCommand');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created with PascalCase class name and lower case signature
         $expectedPath = $this->tempDir.'/app/Directives/MyCustomCommandDirective.php';
         $this->assertFileExists($expectedPath);
 
@@ -227,17 +243,20 @@ final class MakeDirectiveTest extends IntegrationTestCase
 
     public function test_creates_file_in_src_when_mode_library(): void
     {
+        // Arrange: Change the mode to library
         $this->app['config']->set('directive-forge.mode', 'library');
 
+        // Create the src directory structure
         mkdir($this->tempDir.'/src', 0777, true);
         mkdir($this->tempDir.'/src/Directives', 0777, true);
 
-        $response = $this->service->run(MakeDirective::class, [
-            'lib-command',
-        ]);
+        // Act: Execute the directive in library mode
+        $response = $this->service->run('forge:directive lib-command');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created in the src directory
         $expectedPath = $this->tempDir.'/src/Directives/LibCommandDirective.php';
         $this->assertFileExists($expectedPath);
 
@@ -247,13 +266,13 @@ final class MakeDirectiveTest extends IntegrationTestCase
 
     public function test_generates_correct_stub_content(): void
     {
-        $response = $this->service->run(MakeDirective::class, [
-            'test.content',
-            '--description=My custom description',
-        ]);
+        // Arrange: Prepare the directive execution with description
+        $response = $this->service->run('forge:directive test.content <description="My custom description">');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created with correct stub content
         $expectedPath = $this->tempDir.'/app/Directives/Test/ContentDirective.php';
         $this->assertFileExists($expectedPath);
 
@@ -274,43 +293,45 @@ final class MakeDirectiveTest extends IntegrationTestCase
 
     public function test_works_with_create_directive_alias(): void
     {
-        $response = $this->service->run(MakeDirective::class, [
-            'alias-test',
-        ]);
+        // Act: Execute the directive using the alias
+        $response = $this->service->run('create-directive alias-test');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created
         $expectedPath = $this->tempDir.'/app/Directives/AliasTestDirective.php';
         $this->assertFileExists($expectedPath);
     }
 
     public function test_works_with_make_cmd_alias(): void
     {
-        $response = $this->service->run(MakeDirective::class, [
-            'cmd-test',
-        ]);
+        // Act: Execute the directive using the alias
+        $response = $this->service->run('make-cmd cmd-test');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created
         $expectedPath = $this->tempDir.'/app/Directives/CmdTestDirective.php';
         $this->assertFileExists($expectedPath);
     }
 
     public function test_returns_success_code_on_success(): void
     {
-        $response = $this->service->run(MakeDirective::class, [
-            'success-test',
-        ]);
+        // Act: Execute the directive successfully
+        $response = $this->service->run('forge:directive success-test');
 
+        // Assert: Verify the success exit code
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_returns_failure_code_on_error(): void
     {
-        $response = $this->service->run(MakeDirective::class, [
-            'invalid..name',
-        ]);
+        // Act: Execute the directive with invalid input
+        $response = $this->service->run('forge:directive invalid..name');
 
+        // Assert: Verify the failure exit code
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
     }
 }

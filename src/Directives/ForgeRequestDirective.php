@@ -6,20 +6,19 @@ namespace AndyDefer\DirectiveForge\Directives;
 
 use AndyDefer\Directive\AbstractDirective;
 use AndyDefer\Directive\Enums\ExitCode;
-use AndyDefer\Directive\Records\DirectiveExecutionRecord;
-use AndyDefer\Directive\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Contexts\DirectiveForgeContext;
+use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
 use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
 use InvalidArgumentException;
 use Throwable;
 
-final class MakeRequestDirective extends AbstractDirective
+final class ForgeRequestDirective extends AbstractDirective
 {
     public function getSignature(): string
     {
-        return 'make-request {name} {--r}';
+        return 'forge:request {name} {--r}';
     }
 
     public function getDescription(): string
@@ -43,8 +42,8 @@ final class MakeRequestDirective extends AbstractDirective
 
     public function execute(): ExitCode
     {
-        $name = $this->argument('name');
-        $createRecord = $this->option('r') ?? false;
+        $name = $this->getArgument('name');
+        $createRecord = $this->getArgument('r') ?? false;
 
         if ($name === null || $name === '') {
             $this->error('Request name is required');
@@ -53,7 +52,7 @@ final class MakeRequestDirective extends AbstractDirective
         }
 
         try {
-            $app = $this->getLaravel();
+            $app = $this->getApplication();
 
             $context = $app->make(DirectiveForgeContext::class)
                 ->setTypeDefinition(new TypeDefinitionRecord('request', 'Request', 'Requests'));
@@ -78,29 +77,50 @@ final class MakeRequestDirective extends AbstractDirective
             }
 
             $hasRecord = false;
+            $recordClassName = null;
+            $recordFullClass = null;
+            $recordNamespace = null;
 
             if ($createRecord) {
-                $recordName = preg_replace('/-?request$/i', '', $name);
-                $recordName = $recordName.'-record';
+                $baseName = preg_replace('/-?request$/i', '', $name);
+                $recordName = $baseName.'-record';
 
-                $args = new StringTypedCollection;
-                $args->add($recordName);
+                $recordQuery = 'forge:record '.$recordName;
 
-                $this->call(new DirectiveExecutionRecord('make-record', $args));
+                $kernel = $this->getKernel();
+
+                ob_start();
+                $exitCode = $kernel->runSignature($recordQuery);
+                $output = ob_get_clean();
+
+                if ($exitCode === ExitCode::SUCCESS) {
+                    $this->line('   ✅ Record created successfully!');
+                } else {
+                    $this->line('   ℹ️ Record already exists, skipping creation');
+                }
+
                 $hasRecord = true;
+
+                $recordContext = $app->make(DirectiveForgeContext::class)
+                    ->setTypeDefinition(new TypeDefinitionRecord('record', 'Record', 'Records'));
+
+                $recordFileName = $recordContext->normalizeFileName($recordName);
+                $recordFilePath = $recordContext->createFilePath($recordFileName);
+                $recordClassName = $recordFilePath->getFileName();
+
+                $recordNamespace = str_replace('Requests', 'Records', $namespace);
+                $recordFullClass = $recordNamespace.'\\'.$recordClassName;
             }
+
+            $description = $this->getCustomDataItem('description', 'Request for '.$name);
 
             $stub = $context->loadStub('request');
 
             $stub->replace(new ReplacementRecord('namespace', $namespace));
             $stub->replace(new ReplacementRecord('class', $className));
+            $stub->replace(new ReplacementRecord('description', $description));
 
             if ($hasRecord) {
-                $recordClassName = str_replace('Request', '', $className).'Record';
-
-                $recordNamespace = str_replace('Requests', 'Records', $namespace);
-                $recordFullClass = $recordNamespace.'\\'.$recordClassName;
-
                 $stub->replace(new ReplacementRecord('record_class', $recordFullClass));
                 $stub->replace(new ReplacementRecord('record_import', 'use '.$recordFullClass.';'));
                 $stub->replace(new ReplacementRecord('record_return', $recordClassName.'::from([ // TODO: Map request data to record properties ])'));

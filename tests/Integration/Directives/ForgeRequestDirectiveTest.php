@@ -6,12 +6,10 @@ namespace AndyDefer\DirectiveForge\Tests\Integration\Directives;
 
 use AndyDefer\Directive\Enums\ExitCode;
 use AndyDefer\Directive\Services\DirectiveTestingService;
-use AndyDefer\DirectiveForge\Directives\MakeRecordDirective;
-use AndyDefer\DirectiveForge\Directives\MakeRequestDirective;
 use AndyDefer\DirectiveForge\Tests\IntegrationTestCase;
 use AndyDefer\PhpServices\Services\FileSystemService;
 
-final class MakeRequestDirectiveTest extends IntegrationTestCase
+final class ForgeRequestDirectiveTest extends IntegrationTestCase
 {
     private DirectiveTestingService $service;
 
@@ -23,8 +21,10 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        $this->service = new DirectiveTestingService($this->app);
-        $this->service->registerDirective(MakeRecordDirective::class);
+        $this->service = new DirectiveTestingService(
+            application: $this->app,
+            sourcePaths: []
+        );
 
         $this->tempDir = $this->service->getTempDir();
 
@@ -72,13 +72,14 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_creates_request_without_record(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'create-user',
-        ]);
+        // Arrange: Prepare the directive execution without record
+        $response = $this->service->run('forge:request create-user');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Request created successfully', $response->output);
 
+        // Assert: Verify the request file was created
         $expectedPath = $this->tempDir.'/app/Requests/CreateUserRequest.php';
         $this->assertFileExists($expectedPath);
 
@@ -92,14 +93,14 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_creates_request_with_record(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'create-user',
-            '--r',
-        ]);
+        // Arrange: Prepare the directive execution with record
+        $response = $this->service->run('forge:request create-user --r');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Request created successfully', $response->output);
 
+        // Assert: Verify the request file was created with record import
         $requestPath = $this->tempDir.'/app/Requests/CreateUserRequest.php';
         $this->assertFileExists($requestPath);
 
@@ -110,6 +111,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('use App\\Records\\CreateUserRecord;', $requestContent);
         $this->assertStringContainsString('return CreateUserRecord::from([ // TODO: Map request data to record properties ])', $requestContent);
 
+        // Assert: Verify the record file was created
         $recordPath = $this->tempDir.'/app/Records/CreateUserRecord.php';
         $this->assertFileExists($recordPath);
 
@@ -121,13 +123,13 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_creates_request_with_subdirectories(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'admin.user-create',
-            '--r',
-        ]);
+        // Arrange: Prepare the directive execution with subdirectory
+        $response = $this->service->run('forge:request admin.user-create --r');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the request file was created in the correct subdirectory
         $requestPath = $this->tempDir.'/app/Requests/Admin/UserCreateRequest.php';
         $this->assertFileExists($requestPath);
 
@@ -136,6 +138,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('namespace App\\Requests\\Admin', $requestContent);
         $this->assertStringContainsString('use App\\Records\\Admin\\UserCreateRecord;', $requestContent);
 
+        // Assert: Verify the record file was created in the correct subdirectory
         $recordPath = $this->tempDir.'/app/Records/Admin/UserCreateRecord.php';
         $this->assertFileExists($recordPath);
 
@@ -146,13 +149,13 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_creates_request_with_deep_subdirectories(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'api.v1.user.create',
-            '--r',
-        ]);
+        // Arrange: Prepare the directive execution with deep subdirectory
+        $response = $this->service->run('forge:request api.v1.user.create --r');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the request file was created in the correct deep subdirectory
         $requestPath = $this->tempDir.'/app/Requests/Api/V1/User/CreateRequest.php';
         $this->assertFileExists($requestPath);
 
@@ -161,6 +164,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('namespace App\\Requests\\Api\\V1\\User', $requestContent);
         $this->assertStringContainsString('use App\\Records\\Api\\V1\\User\\CreateRecord;', $requestContent);
 
+        // Assert: Verify the record file was created in the correct deep subdirectory
         $recordPath = $this->tempDir.'/app/Records/Api/V1/User/CreateRecord.php';
         $this->assertFileExists($recordPath);
 
@@ -171,12 +175,13 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_creates_request_with_suffix_already_present(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'create-user-request',
-        ]);
+        // Arrange: Prepare the directive execution with name already containing suffix
+        $response = $this->service->run('forge:request create-user-request');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created without duplicating suffix
         $expectedPath = $this->tempDir.'/app/Requests/CreateUserRequest.php';
         $this->assertFileExists($expectedPath);
 
@@ -187,13 +192,13 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_creates_request_with_suffix_already_present_and_record(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'create-user-request',
-            '--r',
-        ]);
+        // Arrange: Prepare the directive execution with suffix and record
+        $response = $this->service->run('forge:request create-user-request --r');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the request file was created with correct record import
         $requestPath = $this->tempDir.'/app/Requests/CreateUserRequest.php';
         $this->assertFileExists($requestPath);
 
@@ -201,6 +206,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('class CreateUserRequest', $requestContent);
         $this->assertStringContainsString('use App\\Records\\CreateUserRecord;', $requestContent);
 
+        // Assert: Verify the record file was created
         $recordPath = $this->tempDir.'/app/Records/CreateUserRecord.php';
         $this->assertFileExists($recordPath);
 
@@ -210,49 +216,59 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_returns_error_when_name_missing(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, []);
+        // Act: Execute the directive without providing a name
+        $response = $this->service->run('forge:request');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
-        $this->assertStringContainsString('Not enough arguments', $response->output);
+        $this->assertStringContainsString('Request name is required', $response->output);
     }
 
     public function test_returns_error_when_name_is_empty(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, ['']);
+        // Act: Execute the directive with an empty name
+        $response = $this->service->run('forge:request ');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Request name is required', $response->output);
     }
 
     public function test_returns_error_when_request_already_exists(): void
     {
-        $this->service->run(MakeRequestDirective::class, ['existing']);
+        // Arrange: Create an existing request
+        $this->service->run('forge:request existing');
 
-        $response = $this->service->run(MakeRequestDirective::class, ['existing']);
+        // Act: Attempt to create a request that already exists
+        $response = $this->service->run('forge:request existing');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('Request already exists', $response->output);
     }
 
     public function test_returns_error_when_name_has_invalid_characters(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, ['invalid@name']);
+        // Act: Attempt to create a request with invalid characters
+        $response = $this->service->run('forge:request invalid@name');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('FilePath contains invalid characters', $response->output);
     }
 
     public function test_uses_custom_namespace_from_config(): void
     {
+        // Arrange: Change the namespace configuration
         $this->app['config']->set('directive-forge.namespace', 'Custom');
 
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'custom-request',
-            '--r',
-        ]);
+        // Act: Execute the directive with custom namespace
+        $response = $this->service->run('forge:request custom-request --r');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the request file was created with the custom namespace
         $requestPath = $this->tempDir.'/app/Requests/CustomRequest.php';
         $this->assertFileExists($requestPath);
 
@@ -261,6 +277,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('namespace Custom\\Requests', $requestContent);
         $this->assertStringContainsString('use Custom\\Records\\CustomRecord;', $requestContent);
 
+        // Assert: Verify the record file was created with the custom namespace
         $recordPath = $this->tempDir.'/app/Records/CustomRecord.php';
         $this->assertFileExists($recordPath);
 
@@ -271,13 +288,13 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_handles_kebab_case_name(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'my-custom-request',
-            '--r',
-        ]);
+        // Arrange: Prepare the directive execution with kebab case
+        $response = $this->service->run('forge:request my-custom-request --r');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the request file was created with PascalCase class name
         $requestPath = $this->tempDir.'/app/Requests/MyCustomRequest.php';
         $this->assertFileExists($requestPath);
 
@@ -285,6 +302,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('class MyCustomRequest', $requestContent);
         $this->assertStringContainsString('use App\\Records\\MyCustomRecord;', $requestContent);
 
+        // Assert: Verify the record file was created with PascalCase class name
         $recordPath = $this->tempDir.'/app/Records/MyCustomRecord.php';
         $this->assertFileExists($recordPath);
 
@@ -294,13 +312,13 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_handles_camel_case_name(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'myCustomRequest',
-            '--r',
-        ]);
+        // Arrange: Prepare the directive execution with camel case
+        $response = $this->service->run('forge:request myCustomRequest --r');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the request file was created with the same name
         $requestPath = $this->tempDir.'/app/Requests/MyCustomRequest.php';
         $this->assertFileExists($requestPath);
 
@@ -308,6 +326,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('class MyCustomRequest', $requestContent);
         $this->assertStringContainsString('use App\\Records\\MyCustomRecord;', $requestContent);
 
+        // Assert: Verify the record file was created with the same name
         $recordPath = $this->tempDir.'/app/Records/MyCustomRecord.php';
         $this->assertFileExists($recordPath);
 
@@ -317,29 +336,31 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_handles_snake_case_name(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'my_custom_request',
-        ]);
+        // Act: Attempt to create a request with snake case (invalid)
+        $response = $this->service->run('forge:request my_custom_request');
 
+        // Assert: Verify the error response
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
         $this->assertStringContainsString('FilePath contains invalid characters', $response->output);
     }
 
     public function test_creates_request_in_src_when_mode_library(): void
     {
+        // Arrange: Change the mode to library
         $this->app['config']->set('directive-forge.mode', 'library');
 
+        // Create the src directory structure
         mkdir($this->tempDir.'/src', 0777, true);
         mkdir($this->tempDir.'/src/Requests', 0777, true);
         mkdir($this->tempDir.'/src/Records', 0777, true);
 
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'lib-request',
-            '--r',
-        ]);
+        // Act: Execute the directive in library mode
+        $response = $this->service->run('forge:request lib-request --r');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the request file was created in the src directory
         $requestPath = $this->tempDir.'/src/Requests/LibRequest.php';
         $this->assertFileExists($requestPath);
 
@@ -348,6 +369,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('namespace App\\Requests', $requestContent);
         $this->assertStringContainsString('use App\\Records\\LibRecord;', $requestContent);
 
+        // Assert: Verify the record file was created in the src directory
         $recordPath = $this->tempDir.'/src/Records/LibRecord.php';
         $this->assertFileExists($recordPath);
 
@@ -358,12 +380,13 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_generates_correct_stub_content_without_record(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'test.content',
-        ]);
+        // Arrange: Prepare the directive execution without record
+        $response = $this->service->run('forge:request test.content');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the request file was created with correct stub content
         $expectedPath = $this->tempDir.'/app/Requests/Test/ContentRequest.php';
         $this->assertFileExists($expectedPath);
 
@@ -383,13 +406,13 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_generates_correct_stub_content_with_record(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'test.content',
-            '--r',
-        ]);
+        // Arrange: Prepare the directive execution with record
+        $response = $this->service->run('forge:request test.content --r');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the request file was created with correct stub content
         $requestPath = $this->tempDir.'/app/Requests/Test/ContentRequest.php';
         $this->assertFileExists($requestPath);
 
@@ -401,6 +424,7 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('use App\\Records\\Test\\ContentRecord;', $requestContent);
         $this->assertStringContainsString('return ContentRecord::from([ // TODO: Map request data to record properties ])', $requestContent);
 
+        // Assert: Verify the record file was created with correct stub content
         $recordPath = $this->tempDir.'/app/Records/Test/ContentRecord.php';
         $this->assertFileExists($recordPath);
 
@@ -412,43 +436,45 @@ final class MakeRequestDirectiveTest extends IntegrationTestCase
 
     public function test_works_with_create_request_alias(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'alias-test',
-        ]);
+        // Act: Execute the directive using the alias
+        $response = $this->service->run('create-request alias-test');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created
         $expectedPath = $this->tempDir.'/app/Requests/AliasTestRequest.php';
         $this->assertFileExists($expectedPath);
     }
 
     public function test_works_with_make_req_alias(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'req-test',
-        ]);
+        // Act: Execute the directive using the alias
+        $response = $this->service->run('make-req req-test');
 
+        // Assert: Verify the directive executed successfully
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
+        // Assert: Verify the file was created
         $expectedPath = $this->tempDir.'/app/Requests/ReqTestRequest.php';
         $this->assertFileExists($expectedPath);
     }
 
     public function test_returns_success_code_on_success(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'success-test',
-        ]);
+        // Act: Execute the directive successfully
+        $response = $this->service->run('forge:request success-test');
 
+        // Assert: Verify the success exit code
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
     }
 
     public function test_returns_failure_code_on_error(): void
     {
-        $response = $this->service->run(MakeRequestDirective::class, [
-            'invalid..name',
-        ]);
+        // Act: Execute the directive with invalid input
+        $response = $this->service->run('forge:request invalid..name');
 
+        // Assert: Verify the failure exit code
         $this->assertSame(ExitCode::INVALID_ARGUMENT, $response->exit_code);
     }
 }

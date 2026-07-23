@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace AndyDefer\DirectiveForge\Generators;
 
-use AndyDefer\Directive\Collections\ReplacementCollection;
 use AndyDefer\Directive\Services\DirectiveInteractionService;
 use AndyDefer\Directive\Services\DirectiveNamingService;
 use AndyDefer\Directive\Services\SignatureValidationService;
+use AndyDefer\DirectiveForge\Collections\ReplacementCollection;
 use AndyDefer\DirectiveForge\Enums\GeneratorType;
 use AndyDefer\DirectiveForge\ValueObjects\PathInfo;
 
