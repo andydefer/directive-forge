@@ -85,6 +85,49 @@ final class ForgeServiceDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('namespace App\\Services', $content);
     }
 
+    public function test_creates_service_with_contract4(): void
+    {
+        $response = $this->service->run('forge:service user --c');
+
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
+        $this->assertStringContainsString('Service created successfully', $response->output);
+
+        $contractPath = $this->tempDir.'/app/Contracts/Services/UserServiceInterface.php';
+        $this->assertFileExists($contractPath);
+
+        $contractContent = file_get_contents($contractPath);
+        $this->assertStringContainsString('interface UserServiceInterface', $contractContent);
+        $this->assertStringContainsString('namespace App\\Contracts\\Services', $contractContent);
+
+        $servicePath = $this->tempDir.'/app/Services/UserService.php';
+        $this->assertFileExists($servicePath);
+
+        $serviceContent = file_get_contents($servicePath);
+        $this->assertStringContainsString('class UserService implements UserServiceInterface', $serviceContent);
+        $this->assertStringContainsString('use App\\Contracts\\Services\\UserServiceInterface;', $serviceContent);
+    }
+
+    public function test_creates_service_with_contract_and_subdirectories(): void
+    {
+        $response = $this->service->run('forge:service admin.user --c');
+
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
+
+        $contractPath = $this->tempDir.'/app/Contracts/Services/Admin/UserServiceInterface.php';
+        $this->assertFileExists($contractPath);
+
+        $contractContent = file_get_contents($contractPath);
+        $this->assertStringContainsString('interface UserServiceInterface', $contractContent);
+        $this->assertStringContainsString('namespace App\\Contracts\\Services\\Admin', $contractContent);
+
+        $servicePath = $this->tempDir.'/app/Services/Admin/UserService.php';
+        $this->assertFileExists($servicePath);
+
+        $serviceContent = file_get_contents($servicePath);
+        $this->assertStringContainsString('class UserService implements UserServiceInterface', $serviceContent);
+        $this->assertStringContainsString('use App\\Contracts\\Services\\Admin\\UserServiceInterface;', $serviceContent);
+    }
+
     public function test_creates_service_with_description(): void
     {
         $response = $this->service->run('forge:service user <description="User management service">');

@@ -29,6 +29,7 @@ final class ForgeInterfaceDirective extends AbstractDirective
     public function getAliases(): StringTypedCollection
     {
         $aliases = new StringTypedCollection;
+        $aliases->add('forge:contract');
         $aliases->add('create-interface');
         $aliases->add('make-contract');
 
