@@ -11,6 +11,7 @@ use AndyDefer\DirectiveForge\Records\ReplacementRecord;
 use AndyDefer\DirectiveForge\Records\TypeDefinitionRecord;
 use AndyDefer\DirectiveForge\Services\GeneratorService;
 use AndyDefer\DomainStructures\Collections\Utility\StringTypedCollection;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
 
@@ -52,18 +53,28 @@ final class ForgeEnumDirective extends AbstractDirective
         try {
             $app = $this->getApplication();
 
+            $baseName = $name;
+            $hasEnumSuffix = str_ends_with(strtolower($name), '-enum');
+
+            if ($hasEnumSuffix) {
+                $baseName = substr($name, 0, -5);
+            }
+
+            $fileNameKebab = Str::kebab($baseName);
+
             $context = $app->make(DirectiveForgeContext::class)
                 ->setTypeDefinition(new TypeDefinitionRecord('enum', 'Enum', 'Enums'));
 
             $generator = $app->make(GeneratorService::class);
 
-            $fileName = $context->normalizeFileName($name);
-            $filePath = $context->createFilePath($fileName);
+            // Supprimer le suffixe -enum ajouté par normalizeFileName
+            $normalizedFileName = str_replace('-enum', '', $context->normalizeFileName($fileNameKebab));
+            $filePath = $context->createFilePath($normalizedFileName);
             $className = $filePath->getFileName();
             $namespace = $context->buildNamespace($filePath);
 
-            if ($context->fileExists($fileName)) {
-                $this->error('Enum already exists: '.$context->getFullPath($fileName));
+            if ($context->fileExists($normalizedFileName)) {
+                $this->error('Enum already exists: '.$context->getFullPath($normalizedFileName));
 
                 return ExitCode::INVALID_ARGUMENT;
             }

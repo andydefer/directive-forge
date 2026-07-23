@@ -76,11 +76,11 @@ final class ForgeEnumDirectiveTest extends IntegrationTestCase
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
         $this->assertStringContainsString('Enum created successfully', $response->output);
 
-        $expectedPath = $this->tempDir.'/app/Enums/UserStatusEnum.php';
+        $expectedPath = $this->tempDir.'/app/Enums/UserStatus.php';
         $this->assertFileExists($expectedPath);
 
         $content = file_get_contents($expectedPath);
-        $this->assertStringContainsString('enum UserStatusEnum', $content);
+        $this->assertStringContainsString('enum UserStatus', $content);
         $this->assertStringContainsString('namespace App\\Enums;', $content);
         $this->assertStringContainsString('User status enum', $content);
     }
@@ -91,11 +91,11 @@ final class ForgeEnumDirectiveTest extends IntegrationTestCase
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
-        $expectedPath = $this->tempDir.'/app/Enums/Users/StatusEnum.php';
+        $expectedPath = $this->tempDir.'/app/Enums/Users/Status.php';
         $this->assertFileExists($expectedPath);
 
         $content = file_get_contents($expectedPath);
-        $this->assertStringContainsString('enum StatusEnum', $content);
+        $this->assertStringContainsString('enum Status', $content);
         $this->assertStringContainsString('namespace App\\Enums\\Users;', $content);
     }
 
@@ -105,12 +105,26 @@ final class ForgeEnumDirectiveTest extends IntegrationTestCase
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
-        $expectedPath = $this->tempDir.'/app/Enums/Api/V1/Users/StatusEnum.php';
+        $expectedPath = $this->tempDir.'/app/Enums/Api/V1/Users/Status.php';
         $this->assertFileExists($expectedPath);
 
         $content = file_get_contents($expectedPath);
-        $this->assertStringContainsString('enum StatusEnum', $content);
+        $this->assertStringContainsString('enum Status', $content);
         $this->assertStringContainsString('namespace App\\Enums\\Api\\V1\\Users;', $content);
+    }
+
+    public function test_creates_enum_without_enum_suffix(): void
+    {
+        $response = $this->service->run('forge:enum user');
+
+        $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
+
+        $expectedPath = $this->tempDir.'/app/Enums/User.php';
+        $this->assertFileExists($expectedPath);
+
+        $content = file_get_contents($expectedPath);
+        $this->assertStringContainsString('enum User', $content);
+        $this->assertStringContainsString('namespace App\\Enums;', $content);
     }
 
     public function test_returns_error_when_name_missing(): void
@@ -147,7 +161,7 @@ final class ForgeEnumDirectiveTest extends IntegrationTestCase
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
-        $expectedPath = $this->tempDir.'/app/Enums/UserStatusEnum.php';
+        $expectedPath = $this->tempDir.'/app/Enums/UserStatus.php';
         $this->assertFileExists($expectedPath);
 
         $content = file_get_contents($expectedPath);
@@ -160,11 +174,11 @@ final class ForgeEnumDirectiveTest extends IntegrationTestCase
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
-        $expectedPath = $this->tempDir.'/app/Enums/MyCustomStatusEnum.php';
+        $expectedPath = $this->tempDir.'/app/Enums/MyCustomStatus.php';
         $this->assertFileExists($expectedPath);
 
         $content = file_get_contents($expectedPath);
-        $this->assertStringContainsString('enum MyCustomStatusEnum', $content);
+        $this->assertStringContainsString('enum MyCustomStatus', $content);
     }
 
     public function test_handles_snake_case_name(): void
@@ -195,7 +209,7 @@ final class ForgeEnumDirectiveTest extends IntegrationTestCase
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
-        $expectedPath = $this->tempDir.'/app/Enums/AliasStatusEnum.php';
+        $expectedPath = $this->tempDir.'/app/Enums/AliasStatus.php';
         $this->assertFileExists($expectedPath);
     }
 }

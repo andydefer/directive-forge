@@ -122,6 +122,7 @@ final class ForgeTypedCollectionDirective extends AbstractDirective
         $baseParts = explode('.', $baseName);
         $lastSegment = end($baseParts);
 
+        // Pour enum, le typeName ne doit PAS avoir le suffixe 'Enum' car ForgeEnumDirective le retire
         [$typeName, $collectionClassName] = match ($suffix) {
             'vo' => [
                 Str::studly($lastSegment).'VO',
@@ -136,8 +137,8 @@ final class ForgeTypedCollectionDirective extends AbstractDirective
                 Str::studly($lastSegment).'RecordCollection',
             ],
             'enum' => [
-                Str::studly($lastSegment).'Enum',
-                Str::studly($lastSegment).'EnumCollection',
+                Str::studly($lastSegment),
+                Str::studly($lastSegment).'Collection',
             ],
             default => [
                 Str::studly($lastSegment).Str::studly($suffix),

@@ -201,16 +201,16 @@ final class ForgeTypedCollectionDirectiveTest extends IntegrationTestCase
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
-        $enumPath = $this->tempDir.'/app/Enums/UserStatusEnum.php';
+        $enumPath = $this->tempDir.'/app/Enums/UserStatus.php';
         $this->assertFileExists($enumPath);
 
-        $collectionPath = $this->tempDir.'/app/Collections/UserStatusEnumCollection.php';
+        $collectionPath = $this->tempDir.'/app/Collections/UserStatusCollection.php';
         $this->assertFileExists($collectionPath);
 
         $content = file_get_contents($collectionPath);
-        $this->assertStringContainsString('class UserStatusEnumCollection extends AbstractTypedCollection', $content);
-        $this->assertStringContainsString('use App\\Enums\\UserStatusEnum;', $content);
-        $this->assertStringContainsString('parent::__construct(UserStatusEnum::class)', $content);
+        $this->assertStringContainsString('class UserStatusCollection extends AbstractTypedCollection', $content);
+        $this->assertStringContainsString('use App\\Enums\\UserStatus;', $content);
+        $this->assertStringContainsString('parent::__construct(UserStatus::class)', $content);
     }
 
     public function test_creates_collection_for_enum_with_short_type(): void
@@ -219,15 +219,15 @@ final class ForgeTypedCollectionDirectiveTest extends IntegrationTestCase
 
         $this->assertSame(ExitCode::SUCCESS, $response->exit_code);
 
-        $enumPath = $this->tempDir.'/app/Enums/UserStatusEnum.php';
+        $enumPath = $this->tempDir.'/app/Enums/UserStatus.php';
         $this->assertFileExists($enumPath);
 
-        $collectionPath = $this->tempDir.'/app/Collections/UserStatusEnumCollection.php';
+        $collectionPath = $this->tempDir.'/app/Collections/UserStatusCollection.php';
         $this->assertFileExists($collectionPath);
 
         $content = file_get_contents($collectionPath);
-        $this->assertStringContainsString('class UserStatusEnumCollection extends AbstractTypedCollection', $content);
-        $this->assertStringContainsString('use App\\Enums\\UserStatusEnum;', $content);
+        $this->assertStringContainsString('class UserStatusCollection extends AbstractTypedCollection', $content);
+        $this->assertStringContainsString('use App\\Enums\\UserStatus;', $content);
     }
 
     public function test_creates_collection_with_subdirectories(): void
