@@ -6,6 +6,7 @@ namespace {{namespace}};
 
 use AndyDefer\Task\Abstract\{{abstract_class}};
 use AndyDefer\DomainStructures\Utils\StrictDataObject;
+use AndyDefer\Task\ValueObjects\DescriptionVO;
 
 /**
  * {{description}}
@@ -14,12 +15,12 @@ use AndyDefer\DomainStructures\Utils\StrictDataObject;
  */
 final class {{class}} extends {{abstract_class}}
 {
-    protected function before(StrictDataObject $payload): void
+     protected function before(StrictDataObject $payload): void
     {
         // TODO: Implement pre-execution logic here
     }
 
-    protected function after(bool $success, ?string $error = null): void
+    protected function after(bool $success, ?DescriptionVO $error = null): void
     {
         // TODO: Implement post-execution logic here
     }
@@ -27,6 +28,6 @@ final class {{class}} extends {{abstract_class}}
     protected function process(): void
     {
         // TODO: Implement your task logic here
-        $this->info('Task executed successfully!');
+        $this->info(DescriptionVO::from('Task executed successfully!'));
     }
 }
