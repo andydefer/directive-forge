@@ -228,7 +228,7 @@ final class ForgeActionDirectiveTest extends IntegrationTestCase
         // Assert: Verify the request imports the record
         $requestContent = file_get_contents($requestPath);
         $this->assertStringContainsString('use App\\Records\\CreateUserRecord;', $requestContent);
-        $this->assertStringContainsString('return CreateUserRecord::from([ // TODO: Map request data to record properties ])', $requestContent);
+        $this->assertStringContainsString('return CreateUserRecord::from([ /** TODO: Map request data to record properties */])', $requestContent);
     }
 
     public function test_creates_action_with_enum_all(): void

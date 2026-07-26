@@ -109,7 +109,7 @@ final class ForgeRequestDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('namespace App\\Requests', $requestContent);
         $this->assertStringContainsString('extends AbstractRequest', $requestContent);
         $this->assertStringContainsString('use App\\Records\\CreateUserRecord;', $requestContent);
-        $this->assertStringContainsString('return CreateUserRecord::from([ // TODO: Map request data to record properties ])', $requestContent);
+        $this->assertStringContainsString('return CreateUserRecord::from([ /** TODO: Map request data to record properties */])', $requestContent);
 
         // Assert: Verify the record file was created
         $recordPath = $this->tempDir.'/app/Records/CreateUserRecord.php';
@@ -422,7 +422,7 @@ final class ForgeRequestDirectiveTest extends IntegrationTestCase
         $this->assertStringContainsString('namespace App\\Requests\\Test;', $requestContent);
         $this->assertStringContainsString('class ContentRequest extends AbstractRequest', $requestContent);
         $this->assertStringContainsString('use App\\Records\\Test\\ContentRecord;', $requestContent);
-        $this->assertStringContainsString('return ContentRecord::from([ // TODO: Map request data to record properties ])', $requestContent);
+        $this->assertStringContainsString('return ContentRecord::from([ /** TODO: Map request data to record properties */])', $requestContent);
 
         // Assert: Verify the record file was created with correct stub content
         $recordPath = $this->tempDir.'/app/Records/Test/ContentRecord.php';

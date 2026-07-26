@@ -123,7 +123,7 @@ final class ForgeRequestDirective extends AbstractDirective
             if ($hasRecord) {
                 $stub->replace(new ReplacementRecord('record_class', $recordFullClass));
                 $stub->replace(new ReplacementRecord('record_import', 'use '.$recordFullClass.';'));
-                $stub->replace(new ReplacementRecord('record_return', $recordClassName.'::from([ // TODO: Map request data to record properties ])'));
+                $stub->replace(new ReplacementRecord('record_return', $recordClassName.'::from([ /** TODO: Map request data to record properties */])'));
             } else {
                 $stub->replace(new ReplacementRecord('record_class', 'EmptyRecord'));
                 $stub->replace(new ReplacementRecord('record_import', 'use AndyDefer\\DomainStructures\\Utils\\EmptyRecord;'));
