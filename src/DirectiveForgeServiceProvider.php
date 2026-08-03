@@ -38,4 +38,11 @@ final class DirectiveForgeServiceProvider extends ServiceProvider
             );
         });
     }
+
+    public function boot(): void
+    {
+        $this->publishes([
+            __DIR__.'/../config/directive-forge.php' => config_path('directive-forge.php'),
+        ], 'directive-forge-config');
+    }
 }

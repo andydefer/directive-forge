@@ -14,6 +14,7 @@
 composer require andydefer/directive-forge --dev
 ```
 
+
 ### Prérequis
 
 - PHP 8.2 ou supérieur
@@ -24,6 +25,13 @@ composer require andydefer/directive-forge --dev
 
 Le package utilise l'auto-découverte de Laravel. Le service provider sera automatiquement enregistré.
 
+### Publication de la configuration
+
+Après l'installation, publiez le fichier de configuration :
+
+```bash
+php artisan vendor:publish --tag=directive-forge-config
+```
 ---
 
 ## Vue d'ensemble
